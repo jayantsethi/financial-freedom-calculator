@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retirement SWP Calculator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Retirement SWP Calculator</h1>
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="corpus-calculator">Corpus Calculator</button>
+            <button class="tab-btn" data-tab="bucket-strategy">3-Bucket Strategy</button>
+            <button class="tab-btn" data-tab="swp-strategy">SWP Strategy</button>
+            <button class="tab-btn" data-tab="bucket-suggest">Suggested 3-Bucket</button>
+            <button class="tab-btn" data-tab="swp-suggest">Suggested SWP</button>
+        </div>
+        
+        <!-- Corpus Calculator Tab -->
+        <div id="corpus-calculator" class="tab-content active">
+            <h2>Corpus Calculator</h2>
+            <div class="input-group">
+                <label>Lumpsum Investments:</label>
+                <input type="number" id="lumpsum" placeholder="Current lumpsum amount">
+            </div>
+            <div class="input-group">
+                <label>Expected CAGR for Lumpsum (%):</label>
+                <input type="number" id="lumpsum-cagr" step="0.1" placeholder="Expected return">
+            </div>
+            <div class="input-group">
+                <label>Monthly SIP:</label>
+                <input type="number" id="sip" placeholder="Monthly SIP amount">
+            </div>
+            <div class="input-group">
+                <label>SIP Step-up (% annually):</label>
+                <input type="number" id="sip-stepup" step="0.1" placeholder="Annual step-up percentage">
+            </div>
+            <div class="input-group">
+                <label>Expected CAGR for SIP (%):</label>
+                <input type="number" id="sip-cagr" step="0.1" placeholder="Expected return">
+            </div>
+            <div class="input-group">
+                <label>Years to Retirement:</label>
+                <input type="number" id="years-to-retire" placeholder="Years until retirement">
+            </div>
+            <button id="calculate-corpus">Calculate Corpus</button>
+            <div id="corpus-result" class="result"></div>
+        </div>
+        
+        <!-- 3-Bucket Strategy Tab -->
+        <div id="bucket-strategy" class="tab-content">
+            <h2>3-Bucket Withdrawal Strategy</h2>
+            <div class="input-group">
+                <label>Current Monthly Expense:</label>
+                <input type="number" id="current-expense" placeholder="Current monthly expenses">
+            </div>
+            <div class="input-group">
+                <label>Expected Inflation (%):</label>
+                <input type="number" id="inflation" step="0.1" placeholder="Annual inflation rate">
+            </div>
+            <div class="input-group">
+                <label>Years to Retirement:</label>
+                <input type="number" id="bucket-years-to-retire" placeholder="Years until retirement">
+            </div>
+            <div class="input-group">
+                <label>Retirement Corpus:</label>
+                <input type="number" id="bucket-corpus" placeholder="Total retirement corpus">
+            </div>
+            <div class="bucket-returns">
+                <h3>Bucket Returns (annualized)</h3>
+                <div class="input-group">
+                    <label>Bucket 1 (Cash/FD) (%):</label>
+                    <input type="number" id="bucket1-return" step="0.1" value="6">
+                </div>
+                <div class="input-group">
+                    <label>Bucket 2 (Debt/Hybrid) (%):</label>
+                    <input type="number" id="bucket2-return" step="0.1" value="8">
+                </div>
+                <div class="input-group">
+                    <label>Bucket 3 (Equity) (%):</label>
+                    <input type="number" id="bucket3-return" step="0.1" value="12">
+                </div>
+            </div>
+            <div class="bucket-allocation">
+                <h3>Bucket Allocation (%)</h3>
+                <div class="input-group">
+                    <label>Bucket 1 (Cash/FD):</label>
+                    <input type="number" id="bucket1-allocation" step="1" value="10">
+                </div>
+                <div class="input-group">
+                    <label>Bucket 2 (Debt/Hybrid):</label>
+                    <input type="number" id="bucket2-allocation" step="1" value="30">
+                </div>
+                <div class="input-group">
+                    <label>Bucket 3 (Equity):</label>
+                    <input type="number" id="bucket3-allocation" step="1" value="60">
+                </div>
+            </div>
+            <button id="calculate-bucket">Calculate Withdrawal Plan</button>
+            <div id="bucket-result" class="result"></div>
+        </div>
+        
+        <!-- SWP Strategy Tab -->
+        <div id="swp-strategy" class="tab-content">
+            <h2>SWP Withdrawal Strategy</h2>
+            <div class="input-group">
+                <label>Current Monthly Expense:</label>
+                <input type="number" id="swp-current-expense" placeholder="Current monthly expenses">
+            </div>
+            <div class="input-group">
+                <label>Expected Inflation (%):</label>
+                <input type="number" id="swp-inflation" step="0.1" placeholder="Annual inflation rate">
+            </div>
+            <div class="input-group">
+                <label>Years to Retirement:</label>
+                <input type="number" id="swp-years-to-retire" placeholder="Years until retirement">
+            </div>
+            <div class="input-group">
+                <label>Retirement Corpus:</label>
+                <input type="number" id="swp-corpus" placeholder="Total retirement corpus">
+            </div>
+            <div class="input-group">
+                <label>Expected Portfolio Return (%):</label>
+                <input type="number" id="swp-return" step="0.1" value="10" placeholder="Expected annual return">
+            </div>
+            <button id="calculate-swp">Calculate SWP Plan</button>
+            <div id="swp-result" class="result"></div>
+        </div>
+        
+        <!-- Suggested 3-Bucket Corpus Tab -->
+        <div id="bucket-suggest" class="tab-content">
+            <h2>Suggested 3-Bucket Corpus</h2>
+            <div class="input-group">
+                <label>Current Monthly Expense:</label>
+                <input type="number" id="suggest-current-expense" placeholder="Current monthly expenses">
+            </div>
+            <div class="input-group">
+                <label>Expected Inflation (%):</label>
+                <input type="number" id="suggest-inflation" step="0.1" placeholder="Annual inflation rate">
+            </div>
+            <div class="input-group">
+                <label>Years to Retirement:</label>
+                <input type="number" id="suggest-years-to-retire" placeholder="Years until retirement">
+            </div>
+            <div class="input-group">
+                <label>Years in Retirement:</label>
+                <input type="number" id="suggest-retirement-years" value="30" placeholder="Retirement duration">
+            </div>
+            <div class="bucket-returns">
+                <h3>Bucket Returns (annualized)</h3>
+                <div class="input-group">
+                    <label>Bucket 1 (Cash/FD) (%):</label>
+                    <input type="number" id="suggest-bucket1-return" step="0.1" value="6">
+                </div>
+                <div class="input-group">
+                    <label>Bucket 2 (Debt/Hybrid) (%):</label>
+                    <input type="number" id="suggest-bucket2-return" step="0.1" value="8">
+                </div>
+                <div class="input-group">
+                    <label>Bucket 3 (Equity) (%):</label>
+                    <input type="number" id="suggest-bucket3-return" step="0.1" value="12">
+                </div>
+            </div>
+            <div class="bucket-allocation">
+                <h3>Bucket Allocation (%)</h3>
+                <div class="input-group">
+                    <label>Bucket 1 (Cash/FD):</label>
+                    <input type="number" id="suggest-bucket1-allocation" step="1" value="10">
+                </div>
+                <div class="input-group">
+                    <label>Bucket 2 (Debt/Hybrid):</label>
+                    <input type="number" id="suggest-bucket2-allocation" step="1" value="30">
+                </div>
+                <div class="input-group">
+                    <label>Bucket 3 (Equity):</label>
+                    <input type="number" id="suggest-bucket3-allocation" step="1" value="60">
+                </div>
+            </div>
+            <button id="calculate-bucket-suggest">Calculate Suggested Corpus</button>
+            <div id="bucket-suggest-result" class="result"></div>
+        </div>
+        
+        <!-- Suggested SWP Corpus Tab -->
+        <div id="swp-suggest" class="tab-content">
+            <h2>Suggested SWP Corpus</h2>
+            <div class="input-group">
+                <label>Current Monthly Expense:</label>
+                <input type="number" id="suggest-swp-current-expense" placeholder="Current monthly expenses">
+            </div>
+            <div class="input-group">
+                <label>Expected Inflation (%):</label>
+                <input type="number" id="suggest-swp-inflation" step="0.1" placeholder="Annual inflation rate">
+            </div>
+            <div class="input-group">
+                <label>Years to Retirement:</label>
+                <input type="number" id="suggest-swp-years-to-retire" placeholder="Years until retirement">
+            </div>
+            <div class="input-group">
+                <label>Years in Retirement:</label>
+                <input type="number" id="suggest-swp-retirement-years" value="30" placeholder="Retirement duration">
+            </div>
+            <div class="input-group">
+                <label>Expected Portfolio Return (%):</label>
+                <input type="number" id="suggest-swp-return" step="0.1" value="10" placeholder="Expected annual return">
+            </div>
+            <button id="calculate-swp-suggest">Calculate Suggested Corpus</button>
+            <div id="swp-suggest-result" class="result"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
