@@ -7,7 +7,27 @@ const CALCULATOR_CONFIG = {
 };
 
 // Utility functions
-const formatNumber = (num) => num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+const formatNumber = (num) => {
+    if (isNaN(num)) return '0.00';
+    
+    const numStr = Math.abs(num).toFixed(2);
+    const [integerPart, decimalPart] = numStr.split('.');
+    
+    // Indian number formatting: last 3 digits, then groups of 2
+    let formatted = '';
+    const digits = integerPart.split('').reverse();
+    
+    for (let i = 0; i < digits.length; i++) {
+        if (i === 3) {
+            formatted = ',' + formatted;
+        } else if (i > 3 && (i - 3) % 2 === 0) {
+            formatted = ',' + formatted;
+        }
+        formatted = digits[i] + formatted;
+    }
+    
+    return (num < 0 ? '-' : '') + formatted + '.' + decimalPart;
+};
 
 const getInputValue = (id, defaultValue = 0) => {
     const value = parseFloat(document.getElementById(id).value);
@@ -202,43 +222,111 @@ const Calculators = {
         const monthlyExpenseAtRetirement = inputs.currentExpense * Math.pow(1 + inputs.inflation / 100, inputs.yearsToRetire);
         const annualExpenseAtRetirement = monthlyExpenseAtRetirement * 12;
         
-        // Calculate required corpus using the weighted average return
-        const weightedReturn = (inputs.returns.bucket1 * inputs.allocations.bucket1 + 
-                               inputs.returns.bucket2 * inputs.allocations.bucket2 + 
-                               inputs.returns.bucket3 * inputs.allocations.bucket3) / 100;
+        // Use binary search to find optimal corpus that depletes by end of retirement
+        let minCorpus = annualExpenseAtRetirement * inputs.retirementYears * 0.5; // Conservative lower bound
+        let maxCorpus = annualExpenseAtRetirement * inputs.retirementYears * 2; // Liberal upper bound
+        let optimalCorpus = 0;
+        let iterations = 0;
+        const maxIterations = 50;
+        const tolerance = 10000; // ₹10,000 tolerance
         
-        // Use a more sophisticated corpus calculation
-        let requiredCorpus = 0;
-        let annualWithdrawal = annualExpenseAtRetirement;
-        
-        // Calculate present value of all future withdrawals
-        for (let year = 0; year < inputs.retirementYears; year++) {
-            const presentValue = annualWithdrawal / Math.pow(1 + weightedReturn / 100, year);
-            requiredCorpus += presentValue;
-            annualWithdrawal *= (1 + inputs.inflation / 100);
+        while (iterations < maxIterations && (maxCorpus - minCorpus) > tolerance) {
+            const testCorpus = (minCorpus + maxCorpus) / 2;
+            const simulationResult = Calculators.simulateOptimalBucketStrategy(testCorpus, inputs);
+            
+            if (simulationResult.success) {
+                // If simulation succeeds, try with lower corpus
+                maxCorpus = testCorpus;
+                optimalCorpus = testCorpus;
+            } else {
+                // If simulation fails, need higher corpus
+                minCorpus = testCorpus;
+            }
+            iterations++;
         }
         
-        // Add a 10% buffer for safety
-        requiredCorpus *= 1.1;
+        const requiredCorpus = optimalCorpus || maxCorpus;
         
         // Show the year-by-year plan with corpus info at the top
         const strategyInputs = { ...inputs, corpus: requiredCorpus };
+        
+        // Calculate weighted average return for display
+        const weightedReturn = (inputs.returns.bucket1 * inputs.allocations.bucket1 + 
+                               inputs.returns.bucket2 * inputs.allocations.bucket2 + 
+                               inputs.returns.bucket3 * inputs.allocations.bucket3) / 100;
         
         // Create a custom header for suggested bucket results
         const customHeader = `
             <h3>Suggested 3-Bucket Corpus</h3>
             <div class="result-highlight">
-                <span class="result-label">Required Corpus:</span>
+                <span class="result-label">Optimized Corpus:</span>
                 <span class="result-value">₹${formatNumber(requiredCorpus)}</span>
             </div>
             <div class="summary">
                 <p>Monthly Expense at Retirement: ₹${formatNumber(monthlyExpenseAtRetirement)}</p>
                 <p>Weighted Average Return: ${weightedReturn.toFixed(2)}%</p>
-                <p>This corpus should support your withdrawals for ${inputs.retirementYears} years of retirement.</p>
+                <p>This corpus is optimized to deplete by the end of ${inputs.retirementYears} years of retirement.</p>
             </div>
         `;
         
         Strategies.calculateBucketStrategyWithHeader(strategyInputs, 'bucket-suggest-result', inputs.retirementYears, customHeader);
+    },
+    
+    simulateOptimalBucketStrategy(corpus, inputs) {
+        let bucket1 = corpus * inputs.allocations.bucket1 / 100;
+        let bucket2 = corpus * inputs.allocations.bucket2 / 100;
+        let bucket3 = corpus * inputs.allocations.bucket3 / 100;
+        
+        let withdrawal = FinancialCalculations.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        
+        for (let year = 1; year <= inputs.retirementYears; year++) {
+            // Apply returns
+            bucket1 *= (1 + inputs.returns.bucket1 / 100);
+            bucket2 *= (1 + inputs.returns.bucket2 / 100);
+            bucket3 *= (1 + inputs.returns.bucket3 / 100);
+            
+            const totalBeforeWithdrawal = bucket1 + bucket2 + bucket3;
+            
+            if (totalBeforeWithdrawal < withdrawal) {
+                return { success: false, year: year };
+            }
+            
+            // Withdraw from buckets in order
+            let remaining = withdrawal;
+            const from1 = Math.min(bucket1, remaining);
+            bucket1 -= from1;
+            remaining -= from1;
+            
+            if (remaining > 0) {
+                const from2 = Math.min(bucket2, remaining);
+                bucket2 -= from2;
+                remaining -= from2;
+            }
+            
+            if (remaining > 0) {
+                const from3 = Math.min(bucket3, remaining);
+                bucket3 -= from3;
+                remaining -= from3;
+            }
+            
+            bucket1 = Math.max(0, bucket1);
+            bucket2 = Math.max(0, bucket2);
+            bucket3 = Math.max(0, bucket3);
+            
+            withdrawal *= (1 + inputs.inflation / 100);
+        }
+        
+        const finalCorpus = bucket1 + bucket2 + bucket3;
+        // Return success if final corpus is reasonably close to zero (within 20% of initial withdrawal)
+        const initialWithdrawal = FinancialCalculations.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        return { 
+            success: finalCorpus <= (initialWithdrawal * 0.5), // Allow up to 50% of initial withdrawal remaining
+            finalCorpus: finalCorpus 
+        };
     },
 
     suggestedSWP() {
@@ -250,17 +338,78 @@ const Calculators = {
             expectedReturn: getInputValue('suggest-swp-return')
         };
         
-        const suggestedCorpus = CorpusFinder.findOptimalSWPCorpus(inputs);
+        // Calculate monthly expense at retirement
+        const monthlyExpenseAtRetirement = inputs.currentExpense * Math.pow(1 + inputs.inflation / 100, inputs.yearsToRetire);
+        const annualExpenseAtRetirement = monthlyExpenseAtRetirement * 12;
         
-        const resultHTML = Templates.suggestedCorpusResult(
-            'Suggested SWP Corpus',
-            suggestedCorpus,
-            inputs.retirementYears
-        );
+        // Use binary search to find optimal corpus that depletes by end of retirement
+        let minCorpus = annualExpenseAtRetirement * inputs.retirementYears * 0.3; // Conservative lower bound
+        let maxCorpus = annualExpenseAtRetirement * inputs.retirementYears * 1.5; // Liberal upper bound
+        let optimalCorpus = 0;
+        let iterations = 0;
+        const maxIterations = 50;
+        const tolerance = 10000; // ₹10,000 tolerance
+        
+        while (iterations < maxIterations && (maxCorpus - minCorpus) > tolerance) {
+            const testCorpus = (minCorpus + maxCorpus) / 2;
+            const simulationResult = Calculators.simulateOptimalSWPStrategy(testCorpus, inputs);
+            
+            if (simulationResult.success) {
+                // If simulation succeeds, try with lower corpus
+                maxCorpus = testCorpus;
+                optimalCorpus = testCorpus;
+            } else {
+                // If simulation fails, need higher corpus
+                minCorpus = testCorpus;
+            }
+            iterations++;
+        }
+        
+        const suggestedCorpus = optimalCorpus || maxCorpus;
+        
+        const resultHTML = `
+            <h3>Suggested SWP Corpus</h3>
+            <div class="result-highlight">
+                <span class="result-label">Optimized Corpus:</span>
+                <span class="result-value">₹${formatNumber(suggestedCorpus)}</span>
+            </div>
+            <div class="summary">
+                <p>Monthly Expense at Retirement: ₹${formatNumber(monthlyExpenseAtRetirement)}</p>
+                <p>Expected Annual Return: ${inputs.expectedReturn}%</p>
+                <p>This corpus is optimized to deplete by the end of ${inputs.retirementYears} years of retirement.</p>
+            </div>
+        `;
         DOM.updateResult('swp-suggest-result', resultHTML);
         
         const strategyInputs = { ...inputs, corpus: suggestedCorpus };
         Strategies.calculateSWPStrategy(strategyInputs, 'swp-suggest-result', inputs.retirementYears);
+    },
+    
+    simulateOptimalSWPStrategy(corpus, inputs) {
+        let currentCorpus = corpus;
+        let withdrawal = FinancialCalculations.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        
+        for (let year = 1; year <= inputs.retirementYears; year++) {
+            currentCorpus *= (1 + inputs.expectedReturn / 100);
+            
+            if (currentCorpus < withdrawal) {
+                return { success: false, year: year };
+            }
+            
+            currentCorpus -= withdrawal;
+            withdrawal *= (1 + inputs.inflation / 100);
+        }
+        
+        // Return success if final corpus is reasonably close to zero (within 50% of initial withdrawal)
+        const initialWithdrawal = FinancialCalculations.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        return { 
+            success: currentCorpus <= (initialWithdrawal * 0.5), // Allow up to 50% of initial withdrawal remaining
+            finalCorpus: currentCorpus 
+        };
     }
 };
 
@@ -401,23 +550,36 @@ const Strategies = {
         let tableHTML = Templates.strategyHeader(
             '3-Bucket Withdrawal Strategy',
             initialWithdrawal
-        ) + Templates.bucketTableHeader();
+        ) + `
+            <div class="summary">
+                <p>Initial Corpus Allocation: Bucket 1: ₹${formatNumber(bucket1)}, Bucket 2: ₹${formatNumber(bucket2)}, Bucket 3: ₹${formatNumber(bucket3)}</p>
+                <p>Total Initial Corpus: ₹${formatNumber(bucket1 + bucket2 + bucket3)}</p>
+            </div>
+        ` + Templates.bucketTableHeader();
         
-        let year = 1;
+        let year = 0; // Start from year 0 to show initial state
         let depleted = false;
         
+        // Show initial state
+        const initialTotal = bucket1 + bucket2 + bucket3;
+        tableHTML += Templates.bucketRow(year, 0, bucket1, bucket2, bucket3, initialTotal);
+        year = 1;
+        
         while (!depleted && year <= maxYears) {
+            // Apply returns first
             bucket1 *= (1 + inputs.returns.bucket1 / 100);
             bucket2 *= (1 + inputs.returns.bucket2 / 100);
             bucket3 *= (1 + inputs.returns.bucket3 / 100);
             
-            const total = bucket1 + bucket2 + bucket3;
-            if (total < withdrawal) {
+            const totalBeforeWithdrawal = bucket1 + bucket2 + bucket3;
+            
+            if (totalBeforeWithdrawal < withdrawal) {
                 tableHTML += Templates.depletedRow(year, withdrawal, 4);
                 depleted = true;
                 break;
             }
             
+            // Withdraw from buckets in order
             let remaining = withdrawal;
             const from1 = Math.min(bucket1, remaining);
             bucket1 -= from1;
@@ -439,10 +601,10 @@ const Strategies = {
             bucket2 = Math.max(0, bucket2);
             bucket3 = Math.max(0, bucket3);
             
-            tableHTML += Templates.bucketRow(year, withdrawal, bucket1, bucket2, bucket3, total);
+            const totalAfterWithdrawal = bucket1 + bucket2 + bucket3;
+            tableHTML += Templates.bucketRow(year, withdrawal, bucket1, bucket2, bucket3, totalAfterWithdrawal);
             
             withdrawal *= (1 + inputs.inflation / 100);
-            
             year++;
         }
         
@@ -465,23 +627,36 @@ const Strategies = {
         let tableHTML = customHeader + Templates.strategyHeader(
             '3-Bucket Withdrawal Strategy',
             initialWithdrawal
-        ) + Templates.bucketTableHeader();
+        ) + `
+            <div class="summary">
+                <p>Initial Corpus Allocation: Bucket 1: ₹${formatNumber(bucket1)}, Bucket 2: ₹${formatNumber(bucket2)}, Bucket 3: ₹${formatNumber(bucket3)}</p>
+                <p>Total Initial Corpus: ₹${formatNumber(bucket1 + bucket2 + bucket3)}</p>
+            </div>
+        ` + Templates.bucketTableHeader();
         
-        let year = 1;
+        let year = 0; // Start from year 0 to show initial state
         let depleted = false;
         
+        // Show initial state
+        const initialTotal = bucket1 + bucket2 + bucket3;
+        tableHTML += Templates.bucketRow(year, 0, bucket1, bucket2, bucket3, initialTotal);
+        year = 1;
+        
         while (!depleted && year <= maxYears) {
+            // Apply returns first
             bucket1 *= (1 + inputs.returns.bucket1 / 100);
             bucket2 *= (1 + inputs.returns.bucket2 / 100);
             bucket3 *= (1 + inputs.returns.bucket3 / 100);
             
-            const total = bucket1 + bucket2 + bucket3;
-            if (total < withdrawal) {
+            const totalBeforeWithdrawal = bucket1 + bucket2 + bucket3;
+            
+            if (totalBeforeWithdrawal < withdrawal) {
                 tableHTML += Templates.depletedRow(year, withdrawal, 4);
                 depleted = true;
                 break;
             }
             
+            // Withdraw from buckets in order
             let remaining = withdrawal;
             const from1 = Math.min(bucket1, remaining);
             bucket1 -= from1;
@@ -503,7 +678,8 @@ const Strategies = {
             bucket2 = Math.max(0, bucket2);
             bucket3 = Math.max(0, bucket3);
             
-            tableHTML += Templates.bucketRow(year, withdrawal, bucket1, bucket2, bucket3, total);
+            const totalAfterWithdrawal = bucket1 + bucket2 + bucket3;
+            tableHTML += Templates.bucketRow(year, withdrawal, bucket1, bucket2, bucket3, totalAfterWithdrawal);
             
             withdrawal *= (1 + inputs.inflation / 100);
             year++;
@@ -525,10 +701,19 @@ const Strategies = {
         let tableHTML = Templates.strategyHeader(
             'SWP Withdrawal Strategy',
             initialWithdrawal
-        ) + Templates.swpTableHeader();
+        ) + `
+            <div class="summary">
+                <p>Initial Corpus: ₹${formatNumber(currentCorpus)}</p>
+                <p>Expected Annual Return: ${inputs.expectedReturn}%</p>
+            </div>
+        ` + Templates.swpTableHeader();
         
-        let year = 1;
+        let year = 0; // Start from year 0 to show initial state
         let depleted = false;
+        
+        // Show initial state
+        tableHTML += Templates.swpRow(year, 0, 0, currentCorpus);
+        year = 1;
         
         while (!depleted && year <= maxYears) {
             currentCorpus *= (1 + inputs.expectedReturn / 100);
@@ -548,7 +733,6 @@ const Strategies = {
             );
             
             withdrawal *= (1 + inputs.inflation / 100);
-            
             year++;
         }
         
