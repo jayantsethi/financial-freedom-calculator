@@ -221,7 +221,11 @@ const Calculators = {
         // Add a 10% buffer for safety
         requiredCorpus *= 1.1;
         
-        const resultHTML = `
+        // Show the year-by-year plan with corpus info at the top
+        const strategyInputs = { ...inputs, corpus: requiredCorpus };
+        
+        // Create a custom header for suggested bucket results
+        const customHeader = `
             <h3>Suggested 3-Bucket Corpus</h3>
             <div class="result-highlight">
                 <span class="result-label">Required Corpus:</span>
@@ -233,11 +237,8 @@ const Calculators = {
                 <p>This corpus should support your withdrawals for ${inputs.retirementYears} years of retirement.</p>
             </div>
         `;
-        DOM.updateResult('bucket-suggest-result', resultHTML);
         
-        // Show the year-by-year plan
-        const strategyInputs = { ...inputs, corpus: requiredCorpus };
-        Strategies.calculateBucketStrategy(strategyInputs, 'bucket-suggest-result', inputs.retirementYears);
+        Strategies.calculateBucketStrategyWithHeader(strategyInputs, 'bucket-suggest-result', inputs.retirementYears, customHeader);
     },
 
     suggestedSWP() {
@@ -448,7 +449,70 @@ const Strategies = {
         tableHTML += Templates.tableFooter();
         tableHTML += Templates.resultMessage(depleted, year, maxYears);
         
-        DOM.appendResult(resultElementId, tableHTML);
+        DOM.updateResult(resultElementId, tableHTML);
+    },
+    
+    calculateBucketStrategyWithHeader(inputs, resultElementId, maxYears = CALCULATOR_CONFIG.maxSimulationYears, customHeader = '') {
+        let bucket1 = inputs.corpus * inputs.allocations.bucket1 / 100;
+        let bucket2 = inputs.corpus * inputs.allocations.bucket2 / 100;
+        let bucket3 = inputs.corpus * inputs.allocations.bucket3 / 100;
+        
+        let withdrawal = FinancialCalculations.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        const initialWithdrawal = withdrawal;
+        
+        let tableHTML = customHeader + Templates.strategyHeader(
+            '3-Bucket Withdrawal Strategy',
+            initialWithdrawal
+        ) + Templates.bucketTableHeader();
+        
+        let year = 1;
+        let depleted = false;
+        
+        while (!depleted && year <= maxYears) {
+            bucket1 *= (1 + inputs.returns.bucket1 / 100);
+            bucket2 *= (1 + inputs.returns.bucket2 / 100);
+            bucket3 *= (1 + inputs.returns.bucket3 / 100);
+            
+            const total = bucket1 + bucket2 + bucket3;
+            if (total < withdrawal) {
+                tableHTML += Templates.depletedRow(year, withdrawal, 4);
+                depleted = true;
+                break;
+            }
+            
+            let remaining = withdrawal;
+            const from1 = Math.min(bucket1, remaining);
+            bucket1 -= from1;
+            remaining -= from1;
+            
+            if (remaining > 0) {
+                const from2 = Math.min(bucket2, remaining);
+                bucket2 -= from2;
+                remaining -= from2;
+            }
+            
+            if (remaining > 0) {
+                const from3 = Math.min(bucket3, remaining);
+                bucket3 -= from3;
+                remaining -= from3;
+            }
+            
+            bucket1 = Math.max(0, bucket1);
+            bucket2 = Math.max(0, bucket2);
+            bucket3 = Math.max(0, bucket3);
+            
+            tableHTML += Templates.bucketRow(year, withdrawal, bucket1, bucket2, bucket3, total);
+            
+            withdrawal *= (1 + inputs.inflation / 100);
+            year++;
+        }
+        
+        tableHTML += Templates.tableFooter();
+        tableHTML += Templates.resultMessage(depleted, year, maxYears);
+        
+        DOM.updateResult(resultElementId, tableHTML);
     },
     
     calculateSWPStrategy(inputs, resultElementId, maxYears = CALCULATOR_CONFIG.maxSimulationYears) {
@@ -491,7 +555,7 @@ const Strategies = {
         tableHTML += Templates.tableFooter();
         tableHTML += Templates.resultMessage(depleted, year, maxYears);
         
-        DOM.appendResult(resultElementId, tableHTML);
+        DOM.updateResult(resultElementId, tableHTML);
     }
 };
 
