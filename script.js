@@ -222,45 +222,52 @@ const Calculators = {
         const monthlyExpenseAtRetirement = inputs.currentExpense * Math.pow(1 + inputs.inflation / 100, inputs.yearsToRetire);
         const annualExpenseAtRetirement = monthlyExpenseAtRetirement * 12;
         
-        // Use binary search to find optimal corpus that depletes by end of retirement
-        let minCorpus = annualExpenseAtRetirement * inputs.retirementYears * 0.5; // Conservative lower bound
-        let maxCorpus = annualExpenseAtRetirement * inputs.retirementYears * 2; // Liberal upper bound
-        let optimalCorpus = 0;
-        let iterations = 0;
-        const maxIterations = 50;
-        const tolerance = 10000; // ₹10,000 tolerance
-        
-        while (iterations < maxIterations && (maxCorpus - minCorpus) > tolerance) {
-            const testCorpus = (minCorpus + maxCorpus) / 2;
-            const simulationResult = Calculators.simulateOptimalBucketStrategy(testCorpus, inputs);
-            
-            if (simulationResult.success) {
-                // If simulation succeeds, try with lower corpus
-                maxCorpus = testCorpus;
-                optimalCorpus = testCorpus;
-            } else {
-                // If simulation fails, need higher corpus
-                minCorpus = testCorpus;
-            }
-            iterations++;
-        }
-        
-        const requiredCorpus = optimalCorpus || maxCorpus;
-        
-        // Show the year-by-year plan with corpus info at the top
-        const strategyInputs = { ...inputs, corpus: requiredCorpus };
-        
-        // Calculate weighted average return for display
+        // Calculate the "perpetuity corpus" for 3-bucket strategy
         const weightedReturn = (inputs.returns.bucket1 * inputs.allocations.bucket1 + 
                                inputs.returns.bucket2 * inputs.allocations.bucket2 + 
                                inputs.returns.bucket3 * inputs.allocations.bucket3) / 100;
         
-        // Create a custom header for suggested bucket results
+        const perpetuityCorpus = annualExpenseAtRetirement / (weightedReturn / 100);
+        
+        // Binary search to find minimum viable corpus for 3-bucket strategy
+        let minCorpus = perpetuityCorpus * 0.8;
+        let maxCorpus = perpetuityCorpus * 2.0; // More conservative upper bound for 3-bucket
+        let bestCorpus = null;
+        
+        // Binary search for optimal 3-bucket corpus
+        for (let i = 0; i < 100; i++) {
+            const testCorpus = (minCorpus + maxCorpus) / 2;
+            const result = Calculators.simulateBucketForMinimum(testCorpus, inputs);
+            
+            if (result.survives) {
+                // Corpus works, try lower
+                if (bestCorpus === null || testCorpus < bestCorpus) {
+                    bestCorpus = testCorpus;
+                }
+                maxCorpus = testCorpus;
+                
+                // If final corpus is reasonable, we can stop
+                if (result.finalCorpus < annualExpenseAtRetirement * 0.5) {
+                    break;
+                }
+            } else {
+                // Corpus too low, need higher
+                minCorpus = testCorpus;
+            }
+            
+            // Stop if range is small enough
+            if ((maxCorpus - minCorpus) < 1000) {
+                break;
+            }
+        }
+        
+        const suggestedCorpus = bestCorpus || perpetuityCorpus * 1.5; // Conservative fallback
+        
         const customHeader = `
             <h3>Suggested 3-Bucket Corpus</h3>
             <div class="result-highlight">
                 <span class="result-label">Optimized Corpus:</span>
-                <span class="result-value">₹${formatNumber(requiredCorpus)}</span>
+                <span class="result-value">₹${formatNumber(suggestedCorpus)}</span>
             </div>
             <div class="summary">
                 <p>Monthly Expense at Retirement: ₹${formatNumber(monthlyExpenseAtRetirement)}</p>
@@ -269,7 +276,55 @@ const Calculators = {
             </div>
         `;
         
+        const strategyInputs = { ...inputs, corpus: suggestedCorpus };
         Strategies.calculateBucketStrategyWithHeader(strategyInputs, 'bucket-suggest-result', inputs.retirementYears, customHeader);
+    },
+    
+    simulateBucketForMinimum(corpus, inputs) {
+        let bucket1 = corpus * inputs.allocations.bucket1 / 100;
+        let bucket2 = corpus * inputs.allocations.bucket2 / 100;
+        let bucket3 = corpus * inputs.allocations.bucket3 / 100;
+        
+        let withdrawal = FinancialCalculations.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        
+        for (let year = 1; year <= inputs.retirementYears; year++) {
+            // Apply returns first (to match actual bucket strategy)
+            bucket1 *= (1 + inputs.returns.bucket1 / 100);
+            bucket2 *= (1 + inputs.returns.bucket2 / 100);
+            bucket3 *= (1 + inputs.returns.bucket3 / 100);
+            
+            const totalBeforeWithdrawal = bucket1 + bucket2 + bucket3;
+            
+            // Check if we can withdraw
+            if (totalBeforeWithdrawal < withdrawal) {
+                return { survives: false, year: year, finalCorpus: totalBeforeWithdrawal };
+            }
+            
+            // Then withdraw from buckets in order
+            let remaining = withdrawal;
+            const from1 = Math.min(bucket1, remaining);
+            bucket1 -= from1;
+            remaining -= from1;
+            
+            if (remaining > 0) {
+                const from2 = Math.min(bucket2, remaining);
+                bucket2 -= from2;
+                remaining -= from2;
+            }
+            
+            if (remaining > 0) {
+                const from3 = Math.min(bucket3, remaining);
+                bucket3 -= from3;
+                remaining -= from3;
+            }
+            
+            withdrawal *= (1 + inputs.inflation / 100);
+        }
+        
+        const finalCorpus = bucket1 + bucket2 + bucket3;
+        return { survives: true, finalCorpus: finalCorpus };
     },
     
     simulateOptimalBucketStrategy(corpus, inputs) {
@@ -290,7 +345,7 @@ const Calculators = {
             const totalBeforeWithdrawal = bucket1 + bucket2 + bucket3;
             
             if (totalBeforeWithdrawal < withdrawal) {
-                return { success: false, year: year };
+                return { success: false, year: year, finalCorpus: totalBeforeWithdrawal };
             }
             
             // Withdraw from buckets in order
@@ -319,12 +374,15 @@ const Calculators = {
         }
         
         const finalCorpus = bucket1 + bucket2 + bucket3;
-        // Return success if final corpus is reasonably close to zero (within 20% of initial withdrawal)
         const initialWithdrawal = FinancialCalculations.calculateInitialWithdrawal(
             inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
         );
+        
+        // Very strict criteria: final corpus should be less than 0.5% of initial withdrawal
+        const maxAllowedLeftover = initialWithdrawal * 0.005;
+        
         return { 
-            success: finalCorpus <= (initialWithdrawal * 0.5), // Allow up to 50% of initial withdrawal remaining
+            success: finalCorpus <= maxAllowedLeftover,
             finalCorpus: finalCorpus 
         };
     },
@@ -342,30 +400,71 @@ const Calculators = {
         const monthlyExpenseAtRetirement = inputs.currentExpense * Math.pow(1 + inputs.inflation / 100, inputs.yearsToRetire);
         const annualExpenseAtRetirement = monthlyExpenseAtRetirement * 12;
         
-        // Use binary search to find optimal corpus that depletes by end of retirement
-        let minCorpus = annualExpenseAtRetirement * inputs.retirementYears * 0.3; // Conservative lower bound
-        let maxCorpus = annualExpenseAtRetirement * inputs.retirementYears * 1.5; // Liberal upper bound
-        let optimalCorpus = 0;
-        let iterations = 0;
-        const maxIterations = 50;
-        const tolerance = 10000; // ₹10,000 tolerance
+        // Calculate the "perpetuity corpus" for SWP - the minimum where returns = withdrawals
+        // For a perpetuity: Corpus * Return Rate = First Year Withdrawal
+        // Therefore: Minimum Corpus = First Year Withdrawal / Return Rate
+        const perpetuityCorpus = annualExpenseAtRetirement / (inputs.expectedReturn / 100);
         
-        while (iterations < maxIterations && (maxCorpus - minCorpus) > tolerance) {
-            const testCorpus = (minCorpus + maxCorpus) / 2;
-            const simulationResult = Calculators.simulateOptimalSWPStrategy(testCorpus, inputs);
+        // Now we need to find a corpus that depletes to near zero
+        // Start from perpetuity corpus and work upwards in small increments
+        let requiredCorpus = perpetuityCorpus * 0.9; // Start slightly below perpetuity
+        let step = annualExpenseAtRetirement * 0.05; // 5% of annual expense steps
+        let lastWorkingCorpus = perpetuityCorpus * 4.0; // fallback - much higher
+        
+        // Use binary search to find optimal corpus
+        // First, find if ANY corpus works by testing a wider range
+        let testRange = perpetuityCorpus * 3.0;
+        let foundWorking = false;
+        
+        // Test if a high corpus works
+        for (let multiplier = 1.2; multiplier <= 3.0; multiplier += 0.2) {
+            const testCorpus = perpetuityCorpus * multiplier;
+            const result = Calculators.simulateSWPForMinimum(testCorpus, inputs);
             
-            if (simulationResult.success) {
-                // If simulation succeeds, try with lower corpus
-                maxCorpus = testCorpus;
-                optimalCorpus = testCorpus;
-            } else {
-                // If simulation fails, need higher corpus
-                minCorpus = testCorpus;
+            if (result.survives) {
+                foundWorking = true;
+                testRange = testCorpus;
+                break;
             }
-            iterations++;
         }
         
-        const suggestedCorpus = optimalCorpus || maxCorpus;
+        if (!foundWorking) {
+            // Use a very conservative estimate
+            testRange = perpetuityCorpus * 4.0;
+        }
+        
+        let minCorpus = perpetuityCorpus * 0.8;
+        let maxCorpus = testRange;
+        let bestCorpus = null;
+        
+        // Binary search for optimal corpus
+        for (let i = 0; i < 100; i++) {
+            const testCorpus = (minCorpus + maxCorpus) / 2;
+            const result = Calculators.simulateSWPForMinimum(testCorpus, inputs);
+            
+            if (result.survives) {
+                // Corpus works, try lower
+                if (bestCorpus === null || testCorpus < bestCorpus) {
+                    bestCorpus = testCorpus;
+                }
+                maxCorpus = testCorpus;
+                
+                // If final corpus is reasonable, we can stop
+                if (result.finalCorpus < annualExpenseAtRetirement * 0.5) {
+                    break;
+                }
+            } else {
+                // Corpus too low, need higher
+                minCorpus = testCorpus;
+            }
+            
+            // Stop if range is small enough
+            if ((maxCorpus - minCorpus) < 1000) {
+                break;
+            }
+        }
+        
+        const suggestedCorpus = bestCorpus || lastWorkingCorpus;
         
         const resultHTML = `
             <h3>Suggested SWP Corpus</h3>
@@ -376,6 +475,7 @@ const Calculators = {
             <div class="summary">
                 <p>Monthly Expense at Retirement: ₹${formatNumber(monthlyExpenseAtRetirement)}</p>
                 <p>Expected Annual Return: ${inputs.expectedReturn}%</p>
+                <p>Perpetuity Corpus (Reference): ₹${formatNumber(perpetuityCorpus)}</p>
                 <p>This corpus is optimized to deplete by the end of ${inputs.retirementYears} years of retirement.</p>
             </div>
         `;
@@ -383,6 +483,30 @@ const Calculators = {
         
         const strategyInputs = { ...inputs, corpus: suggestedCorpus };
         Strategies.calculateSWPStrategy(strategyInputs, 'swp-suggest-result', inputs.retirementYears);
+    },
+    
+    simulateSWPForMinimum(corpus, inputs) {
+        let currentCorpus = corpus;
+        let withdrawal = FinancialCalculations.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        
+        for (let year = 1; year <= inputs.retirementYears; year++) {
+            // Apply returns first (to match actual SWP strategy)
+            currentCorpus *= (1 + inputs.expectedReturn / 100);
+            
+            // Check if we can withdraw
+            if (currentCorpus < withdrawal) {
+                return { survives: false, year: year, finalCorpus: currentCorpus };
+            }
+            
+            // Then withdraw
+            currentCorpus -= withdrawal;
+            
+            withdrawal *= (1 + inputs.inflation / 100);
+        }
+        
+        return { survives: true, finalCorpus: currentCorpus };
     },
     
     simulateOptimalSWPStrategy(corpus, inputs) {
@@ -406,8 +530,11 @@ const Calculators = {
         const initialWithdrawal = FinancialCalculations.calculateInitialWithdrawal(
             inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
         );
+        // Very strict criteria: final corpus should be less than 0.5% of initial withdrawal
+        const maxAllowedLeftover = initialWithdrawal * 0.005;
+        
         return { 
-            success: currentCorpus <= (initialWithdrawal * 0.5), // Allow up to 50% of initial withdrawal remaining
+            success: currentCorpus <= maxAllowedLeftover,
             finalCorpus: currentCorpus 
         };
     }
