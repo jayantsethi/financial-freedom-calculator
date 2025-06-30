@@ -29,6 +29,13 @@ h1 {
     font-size: 28px;
 }
 
+.subtitle {
+    color: #7f8c8d;
+    font-size: 16px;
+    margin: 8px 0 0 0;
+    font-weight: normal;
+}
+
 /* Hamburger Menu */
 .hamburger {
     display: flex;
@@ -369,4 +376,69 @@ tr.depleted td {
     .header {
         padding: 0 5px;
     }
+}
+
+/* Footer Styles */
+.footer {
+    margin-top: 40px;
+    padding: 30px 0;
+    border-top: 1px solid #e1e8ed;
+    background-color: #f8f9fa;
+}
+
+.footer-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.footer h2 {
+    color: #2c3e50;
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.footer h3 {
+    color: #34495e;
+    font-size: 18px;
+    margin: 20px 0 10px 0;
+}
+
+.footer p {
+    color: #5a6c7d;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.calculator-features ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.calculator-features li {
+    color: #5a6c7d;
+    margin-bottom: 8px;
+    padding-left: 20px;
+    position: relative;
+}
+
+.calculator-features li:before {
+    content: "✓";
+    color: #27ae60;
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+}
+
+.disclaimer {
+    margin-top: 25px;
+    padding: 15px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 5px;
+}
+
+.disclaimer p {
+    margin: 0;
+    color: #856404;
 }

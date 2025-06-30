@@ -3,31 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Freedom Corpus Calculator</title>
+    
+    <!-- Primary Meta Tags -->
+    <title>Financial Freedom Calculator | EPF, PPF & Retirement Corpus Calculator</title>
+    <meta name="title" content="Financial Freedom Calculator | EPF, PPF & Retirement Corpus Calculator">
+    <meta name="description" content="Free online financial freedom calculator with EPF, PPF corpus calculators, SWP strategy planner, and 3-bucket retirement planning tools. Calculate your retirement corpus and achieve financial independence.">
+    <meta name="keywords" content="financial freedom calculator, EPF calculator, PPF calculator, retirement planning, corpus calculator, SWP calculator, financial independence, retirement corpus, investment calculator, India">
+    <meta name="author" content="Financial Freedom Calculator">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://your-domain.com/">
+    <meta property="og:title" content="Financial Freedom Calculator | EPF, PPF & Retirement Planning Tools">
+    <meta property="og:description" content="Calculate your path to financial freedom with our comprehensive suite of calculators including EPF, PPF, SWP strategies, and retirement corpus planning tools.">
+    <meta property="og:image" content="https://your-domain.com/og-image.jpg">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://your-domain.com/">
+    <meta property="twitter:title" content="Financial Freedom Calculator | EPF, PPF & Retirement Planning">
+    <meta property="twitter:description" content="Free online calculators for EPF, PPF, retirement corpus, and financial independence planning. Start your journey to financial freedom today.">
+    <meta property="twitter:image" content="https://your-domain.com/twitter-image.jpg">
+    
+    <!-- Additional SEO Meta Tags -->
+    <meta name="theme-color" content="#2563eb">
+    <meta name="msapplication-TileColor" content="#2563eb">
+    <link rel="canonical" href="https://your-domain.com/">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Financial Freedom Calculator",
+      "description": "Comprehensive financial planning tools including EPF calculator, PPF calculator, retirement corpus calculator, and investment planning strategies.",
+      "url": "https://your-domain.com",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "EPF Corpus Calculator",
+        "PPF Corpus Calculator",
+        "Retirement Planning Tools",
+        "SWP Strategy Calculator",
+        "3-Bucket Investment Strategy",
+        "Financial Independence Calculator"
+      ]
+    }
+    </script>
+    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Financial Freedom Corpus Calculator</h1>
-            <button class="hamburger" id="hamburger-menu">
+        <header class="header">
+            <h1>Financial Freedom Calculator - Plan Your Retirement & Investment Goals</h1>
+            <p class="subtitle">Free online calculators for EPF, PPF, retirement corpus, and financial independence planning</p>
+            <button class="hamburger" id="hamburger-menu" aria-label="Open navigation menu">
                 <span></span>
                 <span></span>
                 <span></span>
             </button>
-        </div>
+        </header>
         
-        <nav class="side-menu" id="side-menu">
-            <button class="close-menu" id="close-menu">&times;</button>
-            <h3>Select Calculator</h3>
-            <ul class="menu-list">
-                <li><a href="#" data-tab="corpus-calculator" class="menu-item active">Corpus Calculator</a></li>
-                <li><a href="#" data-tab="epf-calculator" class="menu-item">EPF Corpus Calculator</a></li>
-                <li><a href="#" data-tab="ppf-calculator" class="menu-item">PPF Corpus Calculator</a></li>
-                <li><a href="#" data-tab="bucket-strategy" class="menu-item">3-Bucket Strategy</a></li>
-                <li><a href="#" data-tab="swp-strategy" class="menu-item">SWP Strategy</a></li>
-                <li><a href="#" data-tab="bucket-suggest" class="menu-item">Suggested 3-Bucket</a></li>
-                <li><a href="#" data-tab="swp-suggest" class="menu-item">Suggested SWP</a></li>
+        <nav class="side-menu" id="side-menu" role="navigation" aria-label="Calculator selection menu">
+            <button class="close-menu" id="close-menu" aria-label="Close navigation menu">&times;</button>
+            <h3>Financial Planning Calculators</h3>
+            <ul class="menu-list" role="menubar">
+                <li role="none"><a href="#corpus-calculator" data-tab="corpus-calculator" class="menu-item active" role="menuitem" aria-current="page">Investment Corpus Calculator</a></li>
+                <li role="none"><a href="#epf-calculator" data-tab="epf-calculator" class="menu-item" role="menuitem">EPF Retirement Calculator</a></li>
+                <li role="none"><a href="#ppf-calculator" data-tab="ppf-calculator" class="menu-item" role="menuitem">PPF Investment Calculator</a></li>
+                <li role="none"><a href="#bucket-strategy" data-tab="bucket-strategy" class="menu-item" role="menuitem">3-Bucket Withdrawal Strategy</a></li>
+                <li role="none"><a href="#swp-strategy" data-tab="swp-strategy" class="menu-item" role="menuitem">SWP Retirement Strategy</a></li>
+                <li role="none"><a href="#bucket-suggest" data-tab="bucket-suggest" class="menu-item" role="menuitem">Optimal 3-Bucket Planning</a></li>
+                <li role="none"><a href="#swp-suggest" data-tab="swp-suggest" class="menu-item" role="menuitem">Optimal SWP Planning</a></li>
             </ul>
         </nav>
         
@@ -273,6 +327,28 @@
             <button id="calculate-ppf" class="calculate-btn">Calculate PPF Corpus</button>
             <div id="ppf-result" class="result"></div>
         </div>
+        
+        <footer class="footer">
+            <div class="footer-content">
+                <h2>About Our Financial Freedom Calculators</h2>
+                <p>Our comprehensive suite of financial planning tools helps you calculate your path to financial independence. Whether you're planning for retirement through EPF and PPF investments, or exploring advanced strategies like SWP and 3-bucket approaches, our calculators provide accurate projections for your financial future.</p>
+                
+                <div class="calculator-features">
+                    <h3>Key Features:</h3>
+                    <ul>
+                        <li><strong>EPF Calculator:</strong> Calculate your Employee Provident Fund corpus with yearly contributions and step-up increases</li>
+                        <li><strong>PPF Calculator:</strong> Plan your Public Provident Fund investments for tax-free retirement income</li>
+                        <li><strong>Retirement Corpus Calculator:</strong> Determine how much you need for financial independence</li>
+                        <li><strong>SWP Strategy:</strong> Systematic Withdrawal Plan for sustainable retirement income</li>
+                        <li><strong>3-Bucket Strategy:</strong> Diversified approach to retirement portfolio management</li>
+                    </ul>
+                </div>
+                
+                <div class="disclaimer">
+                    <p><small><strong>Disclaimer:</strong> These calculators are for educational purposes only. Results are estimates based on the inputs provided. Please consult with a qualified financial advisor for personalized investment advice. Past performance does not guarantee future results.</small></p>
+                </div>
+            </div>
+        </footer>
     </div>
 
     <script src="script.js"></script>
