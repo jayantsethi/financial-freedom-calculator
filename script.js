@@ -85,6 +85,13 @@ const DOM = {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
                 
+                // Get current active tab for analytics
+                const currentActiveTab = document.querySelector('.menu-item.active')?.getAttribute('data-tab') || 'none';
+                const newTab = item.getAttribute('data-tab');
+                
+                // Track tab switch
+                Analytics.trackTabSwitch(currentActiveTab, newTab);
+                
                 // Remove active class from all items and contents
                 menuItems.forEach(mi => mi.classList.remove('active'));
                 tabContents.forEach(content => content.classList.remove('active'));
@@ -548,10 +555,22 @@ const Calculators = {
         const contributionIncrease = getInputValue('epf-contribution-increase');
         const years = getIntValue('epf-years');
 
+        // Track button click
+        Analytics.trackButtonClick('calculate', 'epf_calculator');
+
         if (interestRate <= 0 || years <= 0) {
             showError('Please enter valid positive values for interest rate and years.');
             return;
         }
+
+        // Track calculator usage with inputs
+        Analytics.trackCalculatorUsage('epf_calculator', {
+            current_corpus: currentCorpus,
+            interest_rate: interestRate,
+            yearly_contribution: yearlyContribution,
+            contribution_increase: contributionIncrease,
+            years: years
+        });
 
         // Calculate future value of current corpus
         const currentCorpusFV = currentCorpus > 0 ? 
@@ -567,6 +586,9 @@ const Calculators = {
             ) : 0;
 
         const totalFutureValue = currentCorpusFV + contributionsFV;
+
+        // Track calculation result
+        Analytics.trackCalculationResult('epf_calculator', totalFutureValue);
 
         const resultHtml = Templates.epfPpfResultWithContributions(
             'EPF',
@@ -589,10 +611,21 @@ const Calculators = {
         const yearlyContribution = getInputValue('ppf-yearly-contribution');
         const years = getIntValue('ppf-years');
 
+        // Track button click
+        Analytics.trackButtonClick('calculate', 'ppf_calculator');
+
         if (interestRate <= 0 || years <= 0) {
             showError('Please enter valid positive values for interest rate and years.');
             return;
         }
+
+        // Track calculator usage with inputs
+        Analytics.trackCalculatorUsage('ppf_calculator', {
+            current_corpus: currentCorpus,
+            interest_rate: interestRate,
+            yearly_contribution: yearlyContribution,
+            years: years
+        });
 
         // Calculate future value of current corpus
         const currentCorpusFV = currentCorpus > 0 ? 
@@ -608,6 +641,9 @@ const Calculators = {
             ) : 0;
 
         const totalFutureValue = currentCorpusFV + contributionsFV;
+
+        // Track calculation result
+        Analytics.trackCalculationResult('ppf_calculator', totalFutureValue);
 
         const resultHtml = Templates.epfPpfResultWithContributions(
             'PPF',
@@ -1167,6 +1203,60 @@ const Templates = {
                 </div>
             </div>
         `;
+    }
+};
+
+// Analytics Tracking Functions
+const Analytics = {
+    // Track calculator usage
+    trackCalculatorUsage(calculatorType, inputs = {}) {
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'calculator_used', {
+                'calculator_type': calculatorType,
+                'custom_parameters': inputs
+            });
+        }
+    },
+
+    // Track tab switches
+    trackTabSwitch(fromTab, toTab) {
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'tab_switch', {
+                'from_tab': fromTab,
+                'to_tab': toTab
+            });
+        }
+    },
+
+    // Track button clicks
+    trackButtonClick(buttonType, calculatorType) {
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'button_click', {
+                'button_type': buttonType,
+                'calculator_type': calculatorType
+            });
+        }
+    },
+
+    // Track user engagement (time spent on calculator)
+    trackEngagement(calculatorType, timeSpent) {
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'user_engagement', {
+                'calculator_type': calculatorType,
+                'engagement_time_msec': timeSpent
+            });
+        }
+    },
+
+    // Track calculation results
+    trackCalculationResult(calculatorType, resultValue) {
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'calculation_completed', {
+                'calculator_type': calculatorType,
+                'result_value': resultValue,
+                'currency': 'INR'
+            });
+        }
     }
 };
 
