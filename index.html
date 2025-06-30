@@ -22,6 +22,8 @@
             <h3>Select Calculator</h3>
             <ul class="menu-list">
                 <li><a href="#" data-tab="corpus-calculator" class="menu-item active">Corpus Calculator</a></li>
+                <li><a href="#" data-tab="epf-calculator" class="menu-item">EPF Corpus Calculator</a></li>
+                <li><a href="#" data-tab="ppf-calculator" class="menu-item">PPF Corpus Calculator</a></li>
                 <li><a href="#" data-tab="bucket-strategy" class="menu-item">3-Bucket Strategy</a></li>
                 <li><a href="#" data-tab="swp-strategy" class="menu-item">SWP Strategy</a></li>
                 <li><a href="#" data-tab="bucket-suggest" class="menu-item">Suggested 3-Bucket</a></li>
@@ -220,6 +222,56 @@
             </div>
             <button id="calculate-swp-suggest">Calculate Suggested Corpus</button>
             <div id="swp-suggest-result" class="result"></div>
+        </div>
+        
+        <!-- EPF Corpus Calculator Tab -->
+        <div id="epf-calculator" class="tab-content">
+            <h2>EPF Corpus Calculator</h2>
+            <div class="input-group">
+                <label>Current EPF Corpus:</label>
+                <input type="number" id="epf-current-corpus" placeholder="Current EPF amount">
+            </div>
+            <div class="input-group">
+                <label>Average Interest Rate (%):</label>
+                <input type="number" id="epf-interest-rate" step="0.1" placeholder="Expected EPF interest rate">
+            </div>
+            <div class="input-group">
+                <label>Yearly Contribution:</label>
+                <input type="number" id="epf-yearly-contribution" placeholder="Annual EPF contribution">
+            </div>
+            <div class="input-group">
+                <label>Yearly % Increase in Contribution:</label>
+                <input type="number" id="epf-contribution-increase" step="0.1" placeholder="Annual increase in contribution %">
+            </div>
+            <div class="input-group">
+                <label>Years Left to Retire:</label>
+                <input type="number" id="epf-years" placeholder="Years until retirement">
+            </div>
+            <button id="calculate-epf" class="calculate-btn">Calculate EPF Corpus</button>
+            <div id="epf-result" class="result"></div>
+        </div>
+        
+        <!-- PPF Corpus Calculator Tab -->
+        <div id="ppf-calculator" class="tab-content">
+            <h2>PPF Corpus Calculator</h2>
+            <div class="input-group">
+                <label>Current PPF Corpus:</label>
+                <input type="number" id="ppf-current-corpus" placeholder="Current PPF amount">
+            </div>
+            <div class="input-group">
+                <label>Average Interest Rate (%):</label>
+                <input type="number" id="ppf-interest-rate" step="0.1" placeholder="Expected PPF interest rate">
+            </div>
+            <div class="input-group">
+                <label>Yearly Contribution:</label>
+                <input type="number" id="ppf-yearly-contribution" placeholder="Annual PPF contribution">
+            </div>
+            <div class="input-group">
+                <label>Years Left to Retire:</label>
+                <input type="number" id="ppf-years" placeholder="Years until retirement">
+            </div>
+            <button id="calculate-ppf" class="calculate-btn">Calculate PPF Corpus</button>
+            <div id="ppf-result" class="result"></div>
         </div>
     </div>
 

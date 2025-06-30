@@ -108,6 +108,8 @@ const DOM = {
         document.getElementById('calculate-swp').addEventListener('click', () => Calculators.swpStrategy());
         document.getElementById('calculate-bucket-suggest').addEventListener('click', () => Calculators.suggestedBucket());
         document.getElementById('calculate-swp-suggest').addEventListener('click', () => Calculators.suggestedSWP());
+        document.getElementById('calculate-epf').addEventListener('click', () => Calculators.epfCalculator());
+        document.getElementById('calculate-ppf').addEventListener('click', () => Calculators.ppfCalculator());
     },
     
     updateResult(elementId, html) {
@@ -537,6 +539,89 @@ const Calculators = {
             success: currentCorpus <= maxAllowedLeftover,
             finalCorpus: currentCorpus 
         };
+    },
+
+    epfCalculator() {
+        const currentCorpus = getInputValue('epf-current-corpus');
+        const interestRate = getInputValue('epf-interest-rate');
+        const yearlyContribution = getInputValue('epf-yearly-contribution');
+        const contributionIncrease = getInputValue('epf-contribution-increase');
+        const years = getIntValue('epf-years');
+
+        if (interestRate <= 0 || years <= 0) {
+            showError('Please enter valid positive values for interest rate and years.');
+            return;
+        }
+
+        // Calculate future value of current corpus
+        const currentCorpusFV = currentCorpus > 0 ? 
+            FinancialCalculations.calculateFutureValue(currentCorpus, interestRate, years) : 0;
+        
+        // Calculate future value of yearly contributions with step-up
+        const contributionsFV = yearlyContribution > 0 ? 
+            FinancialCalculations.calculateSIPFutureValue(
+                yearlyContribution / 12, // Convert yearly to monthly
+                interestRate, 
+                contributionIncrease, 
+                years
+            ) : 0;
+
+        const totalFutureValue = currentCorpusFV + contributionsFV;
+
+        const resultHtml = Templates.epfPpfResultWithContributions(
+            'EPF',
+            currentCorpus,
+            yearlyContribution,
+            contributionIncrease,
+            interestRate,
+            years,
+            currentCorpusFV,
+            contributionsFV,
+            totalFutureValue
+        );
+
+        DOM.updateResult('epf-result', resultHtml);
+    },
+
+    ppfCalculator() {
+        const currentCorpus = getInputValue('ppf-current-corpus');
+        const interestRate = getInputValue('ppf-interest-rate');
+        const yearlyContribution = getInputValue('ppf-yearly-contribution');
+        const years = getIntValue('ppf-years');
+
+        if (interestRate <= 0 || years <= 0) {
+            showError('Please enter valid positive values for interest rate and years.');
+            return;
+        }
+
+        // Calculate future value of current corpus
+        const currentCorpusFV = currentCorpus > 0 ? 
+            FinancialCalculations.calculateFutureValue(currentCorpus, interestRate, years) : 0;
+        
+        // Calculate future value of yearly contributions (no step-up for PPF)
+        const contributionsFV = yearlyContribution > 0 ? 
+            FinancialCalculations.calculateSIPFutureValue(
+                yearlyContribution / 12, // Convert yearly to monthly
+                interestRate, 
+                0, // No step-up for PPF
+                years
+            ) : 0;
+
+        const totalFutureValue = currentCorpusFV + contributionsFV;
+
+        const resultHtml = Templates.epfPpfResultWithContributions(
+            'PPF',
+            currentCorpus,
+            yearlyContribution,
+            0, // No step-up for PPF
+            interestRate,
+            years,
+            currentCorpusFV,
+            contributionsFV,
+            totalFutureValue
+        );
+
+        DOM.updateResult('ppf-result', resultHtml);
     }
 };
 
@@ -991,6 +1076,97 @@ const Templates = {
         } else {
             return `<p class="success">Corpus lasted through ${maxYears} years of retirement</p>`;
         }
+    },
+
+    epfPpfResult(type, currentCorpus, interestRate, years, futureValue) {
+        const growth = futureValue - currentCorpus;
+        const growthPercentage = ((futureValue - currentCorpus) / currentCorpus * 100).toFixed(2);
+        
+        return `
+            <div class="result-summary">
+                <h3>${type} Corpus Calculation Results</h3>
+                <div class="result-grid">
+                    <div class="result-item">
+                        <span class="label">Current ${type} Corpus:</span>
+                        <span class="value">₹${formatNumber(currentCorpus)}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Interest Rate:</span>
+                        <span class="value">${interestRate}% per annum</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Years to Retirement:</span>
+                        <span class="value">${years} years</span>
+                    </div>
+                    <div class="result-item highlight">
+                        <span class="label">Total ${type} Corpus at Retirement:</span>
+                        <span class="value">₹${formatNumber(futureValue)}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Total Growth:</span>
+                        <span class="value">₹${formatNumber(growth)} (${growthPercentage}%)</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    epfPpfResultWithContributions(type, currentCorpus, yearlyContribution, contributionIncrease, interestRate, years, currentCorpusFV, contributionsFV, totalFutureValue) {
+        const totalInvestment = currentCorpus + (yearlyContribution * years);
+        const totalGrowth = totalFutureValue - totalInvestment;
+        const growthPercentage = totalInvestment > 0 ? ((totalGrowth / totalInvestment) * 100).toFixed(2) : '0.00';
+        
+        return `
+            <div class="result-summary">
+                <h3>${type} Corpus Calculation Results</h3>
+                <div class="result-grid">
+                    <div class="result-item">
+                        <span class="label">Current ${type} Corpus:</span>
+                        <span class="value">₹${formatNumber(currentCorpus)}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Yearly Contribution:</span>
+                        <span class="value">₹${formatNumber(yearlyContribution)}</span>
+                    </div>
+                    ${contributionIncrease > 0 ? `
+                    <div class="result-item">
+                        <span class="label">Yearly Increase in Contribution:</span>
+                        <span class="value">${contributionIncrease}% per annum</span>
+                    </div>` : ''}
+                    <div class="result-item">
+                        <span class="label">Interest Rate:</span>
+                        <span class="value">${interestRate}% per annum</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Years to Retirement:</span>
+                        <span class="value">${years} years</span>
+                    </div>
+                    <div class="result-breakdown">
+                        <h4>Breakdown:</h4>
+                        <div class="result-item">
+                            <span class="label">Future Value of Current Corpus:</span>
+                            <span class="value">₹${formatNumber(currentCorpusFV)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="label">Future Value of Contributions:</span>
+                            <span class="value">₹${formatNumber(contributionsFV)}</span>
+                        </div>
+                    </div>
+                    <div class="result-item highlight">
+                        <span class="label">Total ${type} Corpus at Retirement:</span>
+                        <span class="value">₹${formatNumber(totalFutureValue)}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Total Investment:</span>
+                        <span class="value">₹${formatNumber(totalInvestment)}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Total Growth:</span>
+                        <span class="value">₹${formatNumber(totalGrowth)} (${growthPercentage}%)</span>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 };
 
