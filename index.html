@@ -80,17 +80,13 @@
 <body>
     <div class="container">
         <header class="header">
-            <h1>FIRE Calculator - Invest for Financial Independence, Retire Early</h1>
-            <p class="subtitle">Invest for FIRE with our comprehensive EPF, PPF, and early retirement planning calculators</p>
-            <button class="hamburger" id="hamburger-menu" aria-label="Open navigation menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
+            <div class="header-text">
+                <h1>FIRE Calculator - Invest for Financial Independence, Retire Early</h1>
+                <p class="subtitle">Invest for FIRE with our comprehensive EPF, PPF, and early retirement planning calculators</p>
+            </div>
         </header>
         
-        <nav class="side-menu" id="side-menu" role="navigation" aria-label="Calculator selection menu">
-            <button class="close-menu" id="close-menu" aria-label="Close navigation menu">&times;</button>
+        <nav class="main-nav" role="navigation" aria-label="Calculator selection menu">
             <h3>Financial Planning Calculators</h3>
             <ul class="menu-list" role="menubar">
                 <li role="none"><a href="#corpus-calculator" data-tab="corpus-calculator" class="menu-item active" role="menuitem" aria-current="page">Investment Corpus Calculator</a></li>
@@ -102,8 +98,6 @@
                 <li role="none"><a href="#swp-suggest" data-tab="swp-suggest" class="menu-item" role="menuitem">Optimal SWP Planning</a></li>
             </ul>
         </nav>
-        
-        <div class="menu-overlay" id="menu-overlay"></div>
         
         <!-- Corpus Calculator Tab -->
         <div id="corpus-calculator" class="tab-content active">

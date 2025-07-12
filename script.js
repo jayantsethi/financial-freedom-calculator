@@ -58,27 +58,8 @@ const DOM = {
     },
     
     initializeTabs() {
-        const hamburger = document.getElementById('hamburger-menu');
-        const sideMenu = document.getElementById('side-menu');
-        const closeMenu = document.getElementById('close-menu');
-        const menuOverlay = document.getElementById('menu-overlay');
         const menuItems = document.querySelectorAll('.menu-item');
         const tabContents = document.querySelectorAll('.tab-content');
-        
-        // Open menu
-        hamburger.addEventListener('click', () => {
-            sideMenu.classList.add('active');
-            menuOverlay.classList.add('active');
-        });
-        
-        // Close menu
-        const closeSideMenu = () => {
-            sideMenu.classList.remove('active');
-            menuOverlay.classList.remove('active');
-        };
-        
-        closeMenu.addEventListener('click', closeSideMenu);
-        menuOverlay.addEventListener('click', closeSideMenu);
         
         // Handle menu item clicks
         menuItems.forEach(item => {
@@ -102,9 +83,6 @@ const DOM = {
                 // Show corresponding tab
                 const tabId = item.getAttribute('data-tab');
                 document.getElementById(tabId).classList.add('active');
-                
-                // Close menu
-                closeSideMenu();
             });
         });
     },
