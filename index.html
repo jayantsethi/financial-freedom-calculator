@@ -87,16 +87,23 @@
         </header>
         
         <nav class="main-nav" role="navigation" aria-label="Calculator selection menu">
-            <h3>Financial Planning Calculators</h3>
-            <ul class="menu-list" role="menubar">
-                <li role="none"><a href="#corpus-calculator" data-tab="corpus-calculator" class="menu-item active" role="menuitem" aria-current="page">Investment Corpus Calculator</a></li>
-                <li role="none"><a href="#epf-calculator" data-tab="epf-calculator" class="menu-item" role="menuitem">EPF Retirement Calculator</a></li>
-                <li role="none"><a href="#ppf-calculator" data-tab="ppf-calculator" class="menu-item" role="menuitem">PPF Investment Calculator</a></li>
-                <li role="none"><a href="#bucket-strategy" data-tab="bucket-strategy" class="menu-item" role="menuitem">3-Bucket Withdrawal Strategy</a></li>
-                <li role="none"><a href="#swp-strategy" data-tab="swp-strategy" class="menu-item" role="menuitem">SWP Retirement Strategy</a></li>
-                <li role="none"><a href="#bucket-suggest" data-tab="bucket-suggest" class="menu-item" role="menuitem">Optimal 3-Bucket Planning</a></li>
-                <li role="none"><a href="#swp-suggest" data-tab="swp-suggest" class="menu-item" role="menuitem">Optimal SWP Planning</a></li>
-            </ul>
+            <div class="nav-header">
+                <h3>Financial Planning Calculators</h3>
+                <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu">
+                    <span class="toggle-icon">▼</span>
+                </button>
+            </div>
+            <div class="nav-content" id="nav-content">
+                <ul class="menu-list" role="menubar">
+                    <li role="none"><a href="#corpus-calculator" data-tab="corpus-calculator" class="menu-item active" role="menuitem" aria-current="page">Investment Corpus Calculator</a></li>
+                    <li role="none"><a href="#epf-calculator" data-tab="epf-calculator" class="menu-item" role="menuitem">EPF Retirement Calculator</a></li>
+                    <li role="none"><a href="#ppf-calculator" data-tab="ppf-calculator" class="menu-item" role="menuitem">PPF Investment Calculator</a></li>
+                    <li role="none"><a href="#bucket-strategy" data-tab="bucket-strategy" class="menu-item" role="menuitem">3-Bucket Withdrawal Strategy</a></li>
+                    <li role="none"><a href="#swp-strategy" data-tab="swp-strategy" class="menu-item" role="menuitem">SWP Retirement Strategy</a></li>
+                    <li role="none"><a href="#bucket-suggest" data-tab="bucket-suggest" class="menu-item" role="menuitem">Optimal 3-Bucket Planning</a></li>
+                    <li role="none"><a href="#swp-suggest" data-tab="swp-suggest" class="menu-item" role="menuitem">Optimal SWP Planning</a></li>
+                </ul>
+            </div>
         </nav>
         
         <!-- Corpus Calculator Tab -->

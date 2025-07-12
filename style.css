@@ -45,15 +45,60 @@ h1 {
     background: #f8f9fa;
     border: 1px solid #e9ecef;
     border-radius: 8px;
-    padding: 20px;
     margin-bottom: 25px;
+    overflow: hidden;
 }
 
-.main-nav h3 {
-    margin: 0 0 15px 0;
+.nav-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    cursor: pointer;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.nav-header h3 {
+    margin: 0;
     color: #2c3e50;
     font-size: 18px;
     font-weight: 600;
+}
+
+.nav-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    color: #6c757d;
+    font-size: 16px;
+    width: auto;
+    margin: 0;
+}
+
+.nav-toggle:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+.nav-content {
+    padding: 20px;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    overflow: hidden;
+}
+
+.nav-content.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
 }
 
 .menu-list {
@@ -105,7 +150,11 @@ h2, h3 {
         font-size: 22px;
     }
     
-    .main-nav {
+    .nav-header {
+        padding: 15px;
+    }
+    
+    .nav-content {
         padding: 15px;
     }
     

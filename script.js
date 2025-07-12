@@ -60,6 +60,33 @@ const DOM = {
     initializeTabs() {
         const menuItems = document.querySelectorAll('.menu-item');
         const tabContents = document.querySelectorAll('.tab-content');
+        const navToggle = document.getElementById('nav-toggle');
+        const navContent = document.getElementById('nav-content');
+        const navHeader = document.querySelector('.nav-header');
+        const toggleIcon = document.querySelector('.toggle-icon');
+        
+        // Initialize navigation state
+        let isNavCollapsed = false;
+        
+        // Toggle navigation
+        const toggleNavigation = () => {
+            isNavCollapsed = !isNavCollapsed;
+            navContent.classList.toggle('collapsed', isNavCollapsed);
+            toggleIcon.style.transform = isNavCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+        };
+        
+        // Handle toggle button click
+        navToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleNavigation();
+        });
+        
+        // Handle header click (for mobile convenience)
+        navHeader.addEventListener('click', (e) => {
+            if (e.target !== navToggle && e.target !== toggleIcon) {
+                toggleNavigation();
+            }
+        });
         
         // Handle menu item clicks
         menuItems.forEach(item => {
@@ -83,6 +110,11 @@ const DOM = {
                 // Show corresponding tab
                 const tabId = item.getAttribute('data-tab');
                 document.getElementById(tabId).classList.add('active');
+                
+                // Collapse navigation after selection
+                if (isNavCollapsed === false) {
+                    toggleNavigation();
+                }
             });
         });
     },
