@@ -2,8 +2,75 @@
 const CALCULATOR_CONFIG = {
     maxSimulationYears: 50,
     maxSimulationAttempts: 100,
-    corpusSearchStep: 100000,
-    corpusSearchPrecision: 1000
+    corpusSearchStep: 50000,
+    corpusSearchPrecision: 500
+};
+
+// Global corpus storage for summation
+const GlobalCorpus = {
+    equity: 0,
+    epf: 0,
+    ppf: 0,
+    fd: 0,
+    
+    getTotal() {
+        return this.equity + this.epf + this.ppf + this.fd;
+    },
+    
+    updateCorpus(type, value) {
+        this[type] = value;
+        this.updateWithdrawalStrategyCorpus();
+    },
+    
+    updateWithdrawalStrategyCorpus() {
+        const total = this.getTotal();
+        if (total > 0) {
+            document.getElementById('bucket-corpus').value = total.toFixed(2);
+            document.getElementById('swp-corpus').value = total.toFixed(2);
+        }
+    }
+};
+
+// Modal System
+const Modal = {
+    show(message, type = 'info', autoClose = true) {
+        // Remove existing modal if any
+        const existingModal = document.querySelector('.modal-overlay');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        const modalHTML = `
+            <div class="modal-overlay">
+                <div class="modal-content modal-${type}">
+                    <div class="modal-message">${message}</div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Add click handler to close modal when clicking outside
+        const modalOverlay = document.querySelector('.modal-overlay');
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                this.hide();
+            }
+        });
+        
+        if (autoClose) {
+            setTimeout(() => {
+                this.hide();
+            }, 3000);
+        }
+    },
+    
+    hide() {
+        const modal = document.querySelector('.modal-overlay');
+        if (modal) {
+            modal.remove();
+        }
+    }
 };
 
 // Utility functions
@@ -45,63 +112,133 @@ const validateBucketAllocations = (allocations) => {
 };
 
 const showError = (message) => {
-    alert(message);
+    Modal.show(message, 'error');
 };
 
 // DOM Management
 const DOM = {
     init() {
         document.addEventListener('DOMContentLoaded', () => {
+            this.initializeHamburgerMenu();
+            this.initializeDropdowns();
             this.initializeTabs();
             this.initializeCalculators();
+            this.initializeInputListeners();
+            this.hideEmptyResults();
+        });
+    },
+    
+    initializeHamburgerMenu() {
+        const hamburgerMenu = document.getElementById('hamburger-menu');
+        const mobileNav = document.getElementById('mobile-nav');
+        const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+        
+        // Toggle hamburger menu
+        hamburgerMenu.addEventListener('click', () => {
+            hamburgerMenu.classList.toggle('active');
+            mobileNav.classList.toggle('active');
+            
+            // Prevent body scroll when menu is open
+            if (mobileNav.classList.contains('active')) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        });
+        
+        // Handle mobile navigation category toggles
+        mobileNavLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                const navItem = link.closest('.mobile-nav-item');
+                const isActive = navItem.classList.contains('active');
+                
+                // Close all other mobile nav items
+                document.querySelectorAll('.mobile-nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                // Toggle current item
+                if (!isActive) {
+                    navItem.classList.add('active');
+                }
+            });
+        });
+        
+        // Close mobile menu when clicking outside
+        mobileNav.addEventListener('click', (e) => {
+            if (e.target === mobileNav) {
+                hamburgerMenu.classList.remove('active');
+                mobileNav.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+        
+        // Close mobile menu when clicking on a submenu item
+        const mobileSubmenuItems = document.querySelectorAll('.mobile-submenu-item');
+        mobileSubmenuItems.forEach(item => {
+            item.addEventListener('click', () => {
+                hamburgerMenu.classList.remove('active');
+                mobileNav.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+        });
+    },
+    
+    initializeDropdowns() {
+        const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+        
+        dropdownToggles.forEach(toggle => {
+            toggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const dropdown = toggle.closest('.dropdown');
+                const isActive = dropdown.classList.contains('active');
+                
+                // Close all other dropdowns
+                document.querySelectorAll('.dropdown').forEach(d => {
+                    d.classList.remove('active');
+                });
+                
+                // Toggle current dropdown
+                if (!isActive) {
+                    dropdown.classList.add('active');
+                }
+            });
+        });
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown').forEach(d => {
+                    d.classList.remove('active');
+                });
+            }
         });
     },
     
     initializeTabs() {
-        const menuItems = document.querySelectorAll('.menu-item');
+        const dropdownItems = document.querySelectorAll('.dropdown-item');
+        const mobileSubmenuItems = document.querySelectorAll('.mobile-submenu-item');
         const tabContents = document.querySelectorAll('.tab-content');
-        const navToggle = document.getElementById('nav-toggle');
-        const navContent = document.getElementById('nav-content');
-        const navHeader = document.querySelector('.nav-header');
-        const toggleIcon = document.querySelector('.toggle-icon');
         
-        // Initialize navigation state
-        let isNavCollapsed = false;
-        
-        // Toggle navigation
-        const toggleNavigation = () => {
-            isNavCollapsed = !isNavCollapsed;
-            navContent.classList.toggle('collapsed', isNavCollapsed);
-            toggleIcon.style.transform = isNavCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
-        };
-        
-        // Handle toggle button click
-        navToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleNavigation();
-        });
-        
-        // Handle header click (for mobile convenience)
-        navHeader.addEventListener('click', (e) => {
-            if (e.target !== navToggle && e.target !== toggleIcon) {
-                toggleNavigation();
-            }
-        });
-        
-        // Handle menu item clicks
-        menuItems.forEach(item => {
+        // Handle dropdown item clicks (desktop)
+        dropdownItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
                 
                 // Get current active tab for analytics
-                const currentActiveTab = document.querySelector('.menu-item.active')?.getAttribute('data-tab') || 'none';
+                const currentActiveTab = document.querySelector('.dropdown-item.active')?.getAttribute('data-tab') || 'none';
                 const newTab = item.getAttribute('data-tab');
                 
                 // Track tab switch
                 Analytics.trackTabSwitch(currentActiveTab, newTab);
                 
                 // Remove active class from all items and contents
-                menuItems.forEach(mi => mi.classList.remove('active'));
+                dropdownItems.forEach(di => di.classList.remove('active'));
+                mobileSubmenuItems.forEach(mi => mi.classList.remove('active'));
                 tabContents.forEach(content => content.classList.remove('active'));
                 
                 // Add active class to clicked item
@@ -111,10 +248,36 @@ const DOM = {
                 const tabId = item.getAttribute('data-tab');
                 document.getElementById(tabId).classList.add('active');
                 
-                // Collapse navigation after selection
-                if (isNavCollapsed === false) {
-                    toggleNavigation();
-                }
+                // Close dropdown
+                document.querySelectorAll('.dropdown').forEach(d => {
+                    d.classList.remove('active');
+                });
+            });
+        });
+        
+        // Handle mobile submenu item clicks
+        mobileSubmenuItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                // Get current active tab for analytics
+                const currentActiveTab = document.querySelector('.mobile-submenu-item.active')?.getAttribute('data-tab') || 'none';
+                const newTab = item.getAttribute('data-tab');
+                
+                // Track tab switch
+                Analytics.trackTabSwitch(currentActiveTab, newTab);
+                
+                // Remove active class from all items and contents
+                dropdownItems.forEach(di => di.classList.remove('active'));
+                mobileSubmenuItems.forEach(mi => mi.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked item
+                item.classList.add('active');
+                
+                // Show corresponding tab
+                const tabId = item.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
             });
         });
     },
@@ -127,12 +290,71 @@ const DOM = {
         document.getElementById('calculate-swp-suggest').addEventListener('click', () => Calculators.suggestedSWP());
         document.getElementById('calculate-epf').addEventListener('click', () => Calculators.epfCalculator());
         document.getElementById('calculate-ppf').addEventListener('click', () => Calculators.ppfCalculator());
+        document.getElementById('calculate-fd').addEventListener('click', () => Calculators.fdCalculator());
+    },
+    
+    initializeInputListeners() {
+        // Add input change listeners for suggested corpus calculators
+        const bucketSuggestInputs = [
+            'suggest-current-expense',
+            'suggest-inflation',
+            'suggest-years-to-retire',
+            'suggest-retirement-years',
+            'suggest-bucket1-return',
+            'suggest-bucket2-return',
+            'suggest-bucket3-return',
+            'suggest-bucket1-allocation',
+            'suggest-bucket2-allocation',
+            'suggest-bucket3-allocation'
+        ];
+        
+        const swpSuggestInputs = [
+            'suggest-swp-current-expense',
+            'suggest-swp-inflation',
+            'suggest-swp-years-to-retire',
+            'suggest-swp-retirement-years',
+            'suggest-swp-return'
+        ];
+        
+        bucketSuggestInputs.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('input', () => {
+                    // Clear the result when inputs change
+                    document.getElementById('bucket-suggest-result').innerHTML = '';
+                    DOM.hideEmptyResults();
+                });
+            }
+        });
+        
+        swpSuggestInputs.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('input', () => {
+                    // Clear the result when inputs change
+                    document.getElementById('swp-suggest-result').innerHTML = '';
+                    DOM.hideEmptyResults();
+                });
+            }
+        });
+    },
+    
+    hideEmptyResults() {
+        const resultElements = document.querySelectorAll('.result');
+        resultElements.forEach(element => {
+            if (element.innerHTML.trim() === '') {
+                element.style.display = 'none';
+            } else {
+                element.style.display = 'block';
+            }
+        });
     },
     
     updateResult(elementId, html) {
         const element = document.getElementById(elementId);
         if (element) {
             element.innerHTML = html;
+            DOM.hideEmptyResults();
         }
     },
     
@@ -140,6 +362,7 @@ const DOM = {
         const element = document.getElementById(elementId);
         if (element) {
             element.innerHTML += html;
+            DOM.hideEmptyResults();
         }
     }
 };
@@ -166,12 +389,37 @@ const Calculators = {
         
         const totalCorpus = lumpsumFutureValue + sipFutureValue;
         
+        // Update global corpus
+        GlobalCorpus.updateCorpus('equity', totalCorpus);
+        
         const resultHTML = Templates.corpusResult(lumpsumFutureValue, sipFutureValue, totalCorpus);
         DOM.updateResult('corpus-result', resultHTML);
+    },
+
+    fdCalculator() {
+        const inputs = {
+            currentAmount: getInputValue('fd-current-amount'),
+            interestRate: getInputValue('fd-interest-rate'),
+            monthlyInvestment: getInputValue('fd-monthly-investment'),
+            investmentStepup: getInputValue('fd-investment-stepup'),
+            years: getIntValue('fd-years')
+        };
         
-        // Update corpus fields in other tabs
-        document.getElementById('bucket-corpus').value = totalCorpus.toFixed(2);
-        document.getElementById('swp-corpus').value = totalCorpus.toFixed(2);
+        const currentAmountFV = FinancialCalculations.calculateFutureValue(
+            inputs.currentAmount, inputs.interestRate, inputs.years
+        );
+        
+        const monthlyInvestmentFV = FinancialCalculations.calculateSIPFutureValue(
+            inputs.monthlyInvestment, inputs.interestRate, inputs.investmentStepup, inputs.years
+        );
+        
+        const totalCorpus = currentAmountFV + monthlyInvestmentFV;
+        
+        // Update global corpus
+        GlobalCorpus.updateCorpus('fd', totalCorpus);
+        
+        const resultHTML = Templates.fdResult(inputs.currentAmount, currentAmountFV, inputs.monthlyInvestment, monthlyInvestmentFV, totalCorpus);
+        DOM.updateResult('fd-result', resultHTML);
     },
 
     bucketStrategy() {
@@ -198,7 +446,14 @@ const Calculators = {
             return;
         }
         
-        Strategies.calculateBucketStrategy(inputs, 'bucket-result');
+        const initialWithdrawal = FinancialCalculations.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        
+        const resultHTML = Templates.strategyHeader('3-Bucket Withdrawal Strategy', initialWithdrawal);
+        DOM.updateResult('bucket-result', resultHTML);
+        
+        FinancialCalculations.calculateBucketStrategy(inputs, 'bucket-result', CALCULATOR_CONFIG.maxSimulationYears);
     },
 
     swpStrategy() {
@@ -207,10 +462,17 @@ const Calculators = {
             inflation: getInputValue('swp-inflation'),
             yearsToRetire: getIntValue('swp-years-to-retire'),
             corpus: getInputValue('swp-corpus'),
-            expectedReturn: getInputValue('swp-return')
+            return: getInputValue('swp-return')
         };
         
-        Strategies.calculateSWPStrategy(inputs, 'swp-result');
+        const initialWithdrawal = FinancialCalculations.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        
+        const resultHTML = Templates.strategyHeader('SWP Withdrawal Strategy', initialWithdrawal);
+        DOM.updateResult('swp-result', resultHTML);
+        
+        FinancialCalculations.calculateSWPStrategy(inputs, 'swp-result', CALCULATOR_CONFIG.maxSimulationYears);
     },
 
     suggestedBucket() {
@@ -218,7 +480,7 @@ const Calculators = {
             currentExpense: getInputValue('suggest-current-expense'),
             inflation: getInputValue('suggest-inflation'),
             yearsToRetire: getIntValue('suggest-years-to-retire'),
-            retirementYears: getIntValue('suggest-retirement-years', 30),
+            retirementYears: getIntValue('suggest-retirement-years'),
             returns: {
                 bucket1: getInputValue('suggest-bucket1-return'),
                 bucket2: getInputValue('suggest-bucket2-return'),
@@ -237,173 +499,53 @@ const Calculators = {
             return;
         }
         
-        // Calculate monthly expense at retirement
-        const monthlyExpenseAtRetirement = inputs.currentExpense * Math.pow(1 + inputs.inflation / 100, inputs.yearsToRetire);
-        const annualExpenseAtRetirement = monthlyExpenseAtRetirement * 12;
+        const optimalCorpus = FinancialCalculations.findOptimalBucketCorpus(inputs);
         
-        // Calculate the "perpetuity corpus" for 3-bucket strategy
-        const weightedReturn = (inputs.returns.bucket1 * inputs.allocations.bucket1 + 
-                               inputs.returns.bucket2 * inputs.allocations.bucket2 + 
-                               inputs.returns.bucket3 * inputs.allocations.bucket3) / 100;
+        const resultHTML = Templates.suggestedCorpusResult('Suggested 3-Bucket Corpus', optimalCorpus, inputs.retirementYears);
+        DOM.updateResult('bucket-suggest-result', resultHTML);
         
-        const perpetuityCorpus = annualExpenseAtRetirement / (weightedReturn / 100);
-        
-        // Binary search to find minimum viable corpus for 3-bucket strategy
-        let minCorpus = perpetuityCorpus * 0.8;
-        let maxCorpus = perpetuityCorpus * 2.0; // More conservative upper bound for 3-bucket
-        let bestCorpus = null;
-        
-        // Binary search for optimal 3-bucket corpus
-        for (let i = 0; i < 100; i++) {
-            const testCorpus = (minCorpus + maxCorpus) / 2;
-            const result = Calculators.simulateBucketForMinimum(testCorpus, inputs);
-            
-            if (result.survives) {
-                // Corpus works, try lower
-                if (bestCorpus === null || testCorpus < bestCorpus) {
-                    bestCorpus = testCorpus;
-                }
-                maxCorpus = testCorpus;
-                
-                // If final corpus is reasonable, we can stop
-                if (result.finalCorpus < annualExpenseAtRetirement * 0.5) {
-                    break;
-                }
-            } else {
-                // Corpus too low, need higher
-                minCorpus = testCorpus;
-            }
-            
-            // Stop if range is small enough
-            if ((maxCorpus - minCorpus) < 1000) {
-                break;
-            }
-        }
-        
-        const suggestedCorpus = bestCorpus || perpetuityCorpus * 1.5; // Conservative fallback
-        
-        const customHeader = `
-            <h3>Suggested 3-Bucket Corpus</h3>
-            <div class="result-highlight">
-                <span class="result-label">Optimized Corpus:</span>
-                <span class="result-value">₹${formatNumber(suggestedCorpus)}</span>
-            </div>
-            <div class="summary">
-                <p>Monthly Expense at Retirement: ₹${formatNumber(monthlyExpenseAtRetirement)}</p>
-                <p>Weighted Average Return: ${weightedReturn.toFixed(2)}%</p>
-                <p>This corpus is optimized to deplete by the end of ${inputs.retirementYears} years of retirement.</p>
-            </div>
-        `;
-        
-        const strategyInputs = { ...inputs, corpus: suggestedCorpus };
-        Strategies.calculateBucketStrategyWithHeader(strategyInputs, 'bucket-suggest-result', inputs.retirementYears, customHeader);
-    },
-    
-    simulateBucketForMinimum(corpus, inputs) {
-        let bucket1 = corpus * inputs.allocations.bucket1 / 100;
-        let bucket2 = corpus * inputs.allocations.bucket2 / 100;
-        let bucket3 = corpus * inputs.allocations.bucket3 / 100;
-        
-        let withdrawal = FinancialCalculations.calculateInitialWithdrawal(
-            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
-        );
-        
-        for (let year = 1; year <= inputs.retirementYears; year++) {
-            // Apply returns first (to match actual bucket strategy)
-            bucket1 *= (1 + inputs.returns.bucket1 / 100);
-            bucket2 *= (1 + inputs.returns.bucket2 / 100);
-            bucket3 *= (1 + inputs.returns.bucket3 / 100);
-            
-            const totalBeforeWithdrawal = bucket1 + bucket2 + bucket3;
-            
-            // Check if we can withdraw
-            if (totalBeforeWithdrawal < withdrawal) {
-                return { survives: false, year: year, finalCorpus: totalBeforeWithdrawal };
-            }
-            
-            // Then withdraw from buckets in order
-            let remaining = withdrawal;
-            const from1 = Math.min(bucket1, remaining);
-            bucket1 -= from1;
-            remaining -= from1;
-            
-            if (remaining > 0) {
-                const from2 = Math.min(bucket2, remaining);
-                bucket2 -= from2;
-                remaining -= from2;
-            }
-            
-            if (remaining > 0) {
-                const from3 = Math.min(bucket3, remaining);
-                bucket3 -= from3;
-                remaining -= from3;
-            }
-            
-            withdrawal *= (1 + inputs.inflation / 100);
-        }
-        
-        const finalCorpus = bucket1 + bucket2 + bucket3;
-        return { survives: true, finalCorpus: finalCorpus };
-    },
-    
-    simulateOptimalBucketStrategy(corpus, inputs) {
-        let bucket1 = corpus * inputs.allocations.bucket1 / 100;
-        let bucket2 = corpus * inputs.allocations.bucket2 / 100;
-        let bucket3 = corpus * inputs.allocations.bucket3 / 100;
-        
-        let withdrawal = FinancialCalculations.calculateInitialWithdrawal(
-            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
-        );
-        
-        for (let year = 1; year <= inputs.retirementYears; year++) {
-            // Apply returns
-            bucket1 *= (1 + inputs.returns.bucket1 / 100);
-            bucket2 *= (1 + inputs.returns.bucket2 / 100);
-            bucket3 *= (1 + inputs.returns.bucket3 / 100);
-            
-            const totalBeforeWithdrawal = bucket1 + bucket2 + bucket3;
-            
-            if (totalBeforeWithdrawal < withdrawal) {
-                return { success: false, year: year, finalCorpus: totalBeforeWithdrawal };
-            }
-            
-            // Withdraw from buckets in order
-            let remaining = withdrawal;
-            const from1 = Math.min(bucket1, remaining);
-            bucket1 -= from1;
-            remaining -= from1;
-            
-            if (remaining > 0) {
-                const from2 = Math.min(bucket2, remaining);
-                bucket2 -= from2;
-                remaining -= from2;
-            }
-            
-            if (remaining > 0) {
-                const from3 = Math.min(bucket3, remaining);
-                bucket3 -= from3;
-                remaining -= from3;
-            }
-            
-            bucket1 = Math.max(0, bucket1);
-            bucket2 = Math.max(0, bucket2);
-            bucket3 = Math.max(0, bucket3);
-            
-            withdrawal *= (1 + inputs.inflation / 100);
-        }
-        
-        const finalCorpus = bucket1 + bucket2 + bucket3;
-        const initialWithdrawal = FinancialCalculations.calculateInitialWithdrawal(
-            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
-        );
-        
-        // Very strict criteria: final corpus should be less than 0.5% of initial withdrawal
-        const maxAllowedLeftover = initialWithdrawal * 0.005;
-        
-        return { 
-            success: finalCorpus <= maxAllowedLeftover,
-            finalCorpus: finalCorpus 
+        // Simulate the strategy with the suggested corpus
+        const simulationInputs = {
+            ...inputs,
+            corpus: optimalCorpus
         };
+        
+        FinancialCalculations.calculateBucketStrategyWithHeader(
+            simulationInputs, 
+            'bucket-suggest-result', 
+            inputs.retirementYears,
+            '<h3>Simulation with Suggested Corpus:</h3>'
+        );
+    },
+
+    simulateBucketForMinimum(corpus, inputs) {
+        const simulationInputs = {
+            ...inputs,
+            corpus: corpus
+        };
+        
+        const result = FinancialCalculations.simulateBucketStrategy(corpus, inputs);
+        
+        if (result.depleted) {
+            return false;
+        }
+        
+        return true;
+    },
+
+    simulateOptimalBucketStrategy(corpus, inputs) {
+        const simulationInputs = {
+            ...inputs,
+            corpus: corpus
+        };
+        
+        const result = FinancialCalculations.simulateBucketStrategy(corpus, inputs);
+        
+        if (result.depleted) {
+            return false;
+        }
+        
+        return true;
     },
 
     suggestedSWP() {
@@ -411,639 +553,538 @@ const Calculators = {
             currentExpense: getInputValue('suggest-swp-current-expense'),
             inflation: getInputValue('suggest-swp-inflation'),
             yearsToRetire: getIntValue('suggest-swp-years-to-retire'),
-            retirementYears: getIntValue('suggest-swp-retirement-years', 30),
-            expectedReturn: getInputValue('suggest-swp-return')
+            retirementYears: getIntValue('suggest-swp-retirement-years'),
+            return: getInputValue('suggest-swp-return')
         };
         
-        // Calculate monthly expense at retirement
-        const monthlyExpenseAtRetirement = inputs.currentExpense * Math.pow(1 + inputs.inflation / 100, inputs.yearsToRetire);
-        const annualExpenseAtRetirement = monthlyExpenseAtRetirement * 12;
+        const optimalCorpus = FinancialCalculations.findOptimalSWPCorpus(inputs);
         
-        // Calculate the "perpetuity corpus" for SWP - the minimum where returns = withdrawals
-        // For a perpetuity: Corpus * Return Rate = First Year Withdrawal
-        // Therefore: Minimum Corpus = First Year Withdrawal / Return Rate
-        const perpetuityCorpus = annualExpenseAtRetirement / (inputs.expectedReturn / 100);
-        
-        // Now we need to find a corpus that depletes to near zero
-        // Start from perpetuity corpus and work upwards in small increments
-        let requiredCorpus = perpetuityCorpus * 0.9; // Start slightly below perpetuity
-        let step = annualExpenseAtRetirement * 0.05; // 5% of annual expense steps
-        let lastWorkingCorpus = perpetuityCorpus * 4.0; // fallback - much higher
-        
-        // Use binary search to find optimal corpus
-        // First, find if ANY corpus works by testing a wider range
-        let testRange = perpetuityCorpus * 3.0;
-        let foundWorking = false;
-        
-        // Test if a high corpus works
-        for (let multiplier = 1.2; multiplier <= 3.0; multiplier += 0.2) {
-            const testCorpus = perpetuityCorpus * multiplier;
-            const result = Calculators.simulateSWPForMinimum(testCorpus, inputs);
-            
-            if (result.survives) {
-                foundWorking = true;
-                testRange = testCorpus;
-                break;
-            }
-        }
-        
-        if (!foundWorking) {
-            // Use a very conservative estimate
-            testRange = perpetuityCorpus * 4.0;
-        }
-        
-        let minCorpus = perpetuityCorpus * 0.8;
-        let maxCorpus = testRange;
-        let bestCorpus = null;
-        
-        // Binary search for optimal corpus
-        for (let i = 0; i < 100; i++) {
-            const testCorpus = (minCorpus + maxCorpus) / 2;
-            const result = Calculators.simulateSWPForMinimum(testCorpus, inputs);
-            
-            if (result.survives) {
-                // Corpus works, try lower
-                if (bestCorpus === null || testCorpus < bestCorpus) {
-                    bestCorpus = testCorpus;
-                }
-                maxCorpus = testCorpus;
-                
-                // If final corpus is reasonable, we can stop
-                if (result.finalCorpus < annualExpenseAtRetirement * 0.5) {
-                    break;
-                }
-            } else {
-                // Corpus too low, need higher
-                minCorpus = testCorpus;
-            }
-            
-            // Stop if range is small enough
-            if ((maxCorpus - minCorpus) < 1000) {
-                break;
-            }
-        }
-        
-        const suggestedCorpus = bestCorpus || lastWorkingCorpus;
-        
-        const resultHTML = `
-            <h3>Suggested SWP Corpus</h3>
-            <div class="result-highlight">
-                <span class="result-label">Optimized Corpus:</span>
-                <span class="result-value">₹${formatNumber(suggestedCorpus)}</span>
-            </div>
-            <div class="summary">
-                <p>Monthly Expense at Retirement: ₹${formatNumber(monthlyExpenseAtRetirement)}</p>
-                <p>Expected Annual Return: ${inputs.expectedReturn}%</p>
-                <p>Perpetuity Corpus (Reference): ₹${formatNumber(perpetuityCorpus)}</p>
-                <p>This corpus is optimized to deplete by the end of ${inputs.retirementYears} years of retirement.</p>
-            </div>
-        `;
+        const resultHTML = Templates.suggestedCorpusResult('Suggested SWP Corpus', optimalCorpus, inputs.retirementYears);
         DOM.updateResult('swp-suggest-result', resultHTML);
         
-        const strategyInputs = { ...inputs, corpus: suggestedCorpus };
-        Strategies.calculateSWPStrategy(strategyInputs, 'swp-suggest-result', inputs.retirementYears);
-    },
-    
-    simulateSWPForMinimum(corpus, inputs) {
-        let currentCorpus = corpus;
-        let withdrawal = FinancialCalculations.calculateInitialWithdrawal(
-            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
-        );
-        
-        for (let year = 1; year <= inputs.retirementYears; year++) {
-            // Apply returns first (to match actual SWP strategy)
-            currentCorpus *= (1 + inputs.expectedReturn / 100);
-            
-            // Check if we can withdraw
-            if (currentCorpus < withdrawal) {
-                return { survives: false, year: year, finalCorpus: currentCorpus };
-            }
-            
-            // Then withdraw
-            currentCorpus -= withdrawal;
-            
-            withdrawal *= (1 + inputs.inflation / 100);
-        }
-        
-        return { survives: true, finalCorpus: currentCorpus };
-    },
-    
-    simulateOptimalSWPStrategy(corpus, inputs) {
-        let currentCorpus = corpus;
-        let withdrawal = FinancialCalculations.calculateInitialWithdrawal(
-            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
-        );
-        
-        for (let year = 1; year <= inputs.retirementYears; year++) {
-            currentCorpus *= (1 + inputs.expectedReturn / 100);
-            
-            if (currentCorpus < withdrawal) {
-                return { success: false, year: year };
-            }
-            
-            currentCorpus -= withdrawal;
-            withdrawal *= (1 + inputs.inflation / 100);
-        }
-        
-        // Return success if final corpus is reasonably close to zero (within 50% of initial withdrawal)
-        const initialWithdrawal = FinancialCalculations.calculateInitialWithdrawal(
-            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
-        );
-        // Very strict criteria: final corpus should be less than 0.5% of initial withdrawal
-        const maxAllowedLeftover = initialWithdrawal * 0.005;
-        
-        return { 
-            success: currentCorpus <= maxAllowedLeftover,
-            finalCorpus: currentCorpus 
+        // Simulate the strategy with the suggested corpus
+        const simulationInputs = {
+            ...inputs,
+            corpus: optimalCorpus
         };
+        
+        FinancialCalculations.calculateSWPStrategy(simulationInputs, 'swp-suggest-result', inputs.retirementYears);
+    },
+
+    simulateSWPForMinimum(corpus, inputs) {
+        const simulationInputs = {
+            ...inputs,
+            corpus: corpus
+        };
+        
+        const result = FinancialCalculations.simulateSWPStrategy(corpus, inputs);
+        
+        if (result.depleted) {
+            return false;
+        }
+        
+        return true;
+    },
+
+    simulateOptimalSWPStrategy(corpus, inputs) {
+        const simulationInputs = {
+            ...inputs,
+            corpus: corpus
+        };
+        
+        const result = FinancialCalculations.simulateSWPStrategy(corpus, inputs);
+        
+        if (result.depleted) {
+            return false;
+        }
+        
+        return true;
     },
 
     epfCalculator() {
-        const currentCorpus = getInputValue('epf-current-corpus');
-        const interestRate = getInputValue('epf-interest-rate');
-        const yearlyContribution = getInputValue('epf-yearly-contribution');
-        const contributionIncrease = getInputValue('epf-contribution-increase');
-        const years = getIntValue('epf-years');
-
-        // Track button click
-        Analytics.trackButtonClick('calculate', 'epf_calculator');
-
-        if (interestRate <= 0 || years <= 0) {
-            showError('Please enter valid positive values for interest rate and years.');
-            return;
-        }
-
-        // Track calculator usage with inputs
-        Analytics.trackCalculatorUsage('epf_calculator', {
-            current_corpus: currentCorpus,
-            interest_rate: interestRate,
-            yearly_contribution: yearlyContribution,
-            contribution_increase: contributionIncrease,
-            years: years
-        });
-
-        // Calculate future value of current corpus
-        const currentCorpusFV = currentCorpus > 0 ? 
-            FinancialCalculations.calculateFutureValue(currentCorpus, interestRate, years) : 0;
+        const inputs = {
+            currentCorpus: getInputValue('epf-current-corpus'),
+            interestRate: getInputValue('epf-interest-rate'),
+            yearlyContribution: getInputValue('epf-yearly-contribution'),
+            contributionIncrease: getInputValue('epf-contribution-increase'),
+            years: getIntValue('epf-years')
+        };
         
-        // Calculate future value of yearly contributions with step-up
-        const contributionsFV = yearlyContribution > 0 ? 
-            FinancialCalculations.calculateSIPFutureValue(
-                yearlyContribution / 12, // Convert yearly to monthly
-                interestRate, 
-                contributionIncrease, 
-                years
-            ) : 0;
-
+        const currentCorpusFV = FinancialCalculations.calculateFutureValue(
+            inputs.currentCorpus, inputs.interestRate, inputs.years
+        );
+        
+        const contributionsFV = FinancialCalculations.calculateSIPFutureValue(
+            inputs.yearlyContribution / 12, // Convert yearly to monthly
+            inputs.interestRate,
+            inputs.contributionIncrease,
+            inputs.years
+        );
+        
         const totalFutureValue = currentCorpusFV + contributionsFV;
-
-        // Track calculation result
-        Analytics.trackCalculationResult('epf_calculator', totalFutureValue);
-
-        const resultHtml = Templates.epfPpfResultWithContributions(
-            'EPF',
-            currentCorpus,
-            yearlyContribution,
-            contributionIncrease,
-            interestRate,
-            years,
-            currentCorpusFV,
-            contributionsFV,
+        
+        // Update global corpus
+        GlobalCorpus.updateCorpus('epf', totalFutureValue);
+        
+        const resultHTML = Templates.epfPpfResultWithContributions(
+            'EPF', 
+            inputs.currentCorpus, 
+            inputs.yearlyContribution, 
+            inputs.contributionIncrease, 
+            inputs.interestRate, 
+            inputs.years, 
+            currentCorpusFV, 
+            contributionsFV, 
             totalFutureValue
         );
-
-        DOM.updateResult('epf-result', resultHtml);
+        DOM.updateResult('epf-result', resultHTML);
     },
 
     ppfCalculator() {
-        const currentCorpus = getInputValue('ppf-current-corpus');
-        const interestRate = getInputValue('ppf-interest-rate');
-        const yearlyContribution = getInputValue('ppf-yearly-contribution');
-        const years = getIntValue('ppf-years');
-
-        // Track button click
-        Analytics.trackButtonClick('calculate', 'ppf_calculator');
-
-        if (interestRate <= 0 || years <= 0) {
-            showError('Please enter valid positive values for interest rate and years.');
-            return;
-        }
-
-        // Track calculator usage with inputs
-        Analytics.trackCalculatorUsage('ppf_calculator', {
-            current_corpus: currentCorpus,
-            interest_rate: interestRate,
-            yearly_contribution: yearlyContribution,
-            years: years
-        });
-
-        // Calculate future value of current corpus
-        const currentCorpusFV = currentCorpus > 0 ? 
-            FinancialCalculations.calculateFutureValue(currentCorpus, interestRate, years) : 0;
+        const inputs = {
+            currentCorpus: getInputValue('ppf-current-corpus'),
+            interestRate: getInputValue('ppf-interest-rate'),
+            yearlyContribution: getInputValue('ppf-yearly-contribution'),
+            years: getIntValue('ppf-years')
+        };
         
-        // Calculate future value of yearly contributions (no step-up for PPF)
-        const contributionsFV = yearlyContribution > 0 ? 
-            FinancialCalculations.calculateSIPFutureValue(
-                yearlyContribution / 12, // Convert yearly to monthly
-                interestRate, 
-                0, // No step-up for PPF
-                years
-            ) : 0;
-
-        const totalFutureValue = currentCorpusFV + contributionsFV;
-
-        // Track calculation result
-        Analytics.trackCalculationResult('ppf_calculator', totalFutureValue);
-
-        const resultHtml = Templates.epfPpfResultWithContributions(
-            'PPF',
-            currentCorpus,
-            yearlyContribution,
+        const currentCorpusFV = FinancialCalculations.calculateFutureValue(
+            inputs.currentCorpus, inputs.interestRate, inputs.years
+        );
+        
+        const contributionsFV = FinancialCalculations.calculateSIPFutureValue(
+            inputs.yearlyContribution / 12, // Convert yearly to monthly
+            inputs.interestRate,
             0, // No step-up for PPF
-            interestRate,
-            years,
-            currentCorpusFV,
-            contributionsFV,
+            inputs.years
+        );
+        
+        const totalFutureValue = currentCorpusFV + contributionsFV;
+        
+        // Update global corpus
+        GlobalCorpus.updateCorpus('ppf', totalFutureValue);
+        
+        const resultHTML = Templates.epfPpfResultWithContributions(
+            'PPF', 
+            inputs.currentCorpus, 
+            inputs.yearlyContribution, 
+            0, // No step-up
+            inputs.interestRate, 
+            inputs.years, 
+            currentCorpusFV, 
+            contributionsFV, 
             totalFutureValue
         );
-
-        DOM.updateResult('ppf-result', resultHtml);
+        DOM.updateResult('ppf-result', resultHTML);
     }
 };
 
 // Financial Calculations
 const FinancialCalculations = {
     calculateFutureValue(principal, rate, years) {
+        if (rate === 0) return principal;
         return principal * Math.pow(1 + rate / 100, years);
     },
-    
-    calculateSIPFutureValue(sip, cagr, stepup, years) {
-        let futureValue = 0;
-        let monthlySIP = sip;
-        const monthlyRate = Math.pow(1 + cagr / 100, 1 / 12) - 1;
-        
-        for (let year = 1; year <= years; year++) {
-            for (let month = 1; month <= 12; month++) {
-                futureValue = (futureValue + monthlySIP) * (1 + monthlyRate);
-            }
-            monthlySIP *= (1 + stepup / 100);
-        }
-        
-        return futureValue;
-    },
-    
-    calculateInitialWithdrawal(currentExpense, inflation, yearsToRetire) {
-        return currentExpense * 12 * Math.pow(1 + inflation / 100, yearsToRetire);
-    },
-    
-    calculateRealReturn(expectedReturn, inflation) {
-        return ((1 + expectedReturn / 100) / (1 + inflation / 100)) - 1;
-    }
-};
 
-// Corpus Finding Logic
-const CorpusFinder = {
-    findOptimalBucketCorpus(inputs) {
-        let suggestedCorpus = 0;
-        let found = false;
-        let step = CALCULATOR_CONFIG.corpusSearchStep;
-        let attempts = 0;
+    calculateSIPFutureValue(sip, cagr, stepup, years) {
+        if (cagr === 0) return sip * 12 * years;
         
-        while (!found && attempts < CALCULATOR_CONFIG.maxSimulationAttempts) {
-            attempts++;
-            const corpus = suggestedCorpus + step;
-            const success = Simulations.simulateBucketStrategy(corpus, inputs);
-            
-            if (success) {
-                if (step <= CALCULATOR_CONFIG.corpusSearchPrecision) {
-                    found = true;
-                    suggestedCorpus = corpus;
-                } else {
-                    suggestedCorpus = corpus - step;
-                    step = step / 10;
-                }
-            } else {
-                suggestedCorpus = corpus;
-            }
+        let total = 0;
+        for (let year = 1; year <= years; year++) {
+            const monthlySIP = sip * Math.pow(1 + stepup / 100, year - 1);
+            const yearFV = monthlySIP * 12 * Math.pow(1 + cagr / 100, years - year + 1);
+            total += yearFV;
         }
-        
-        return found ? suggestedCorpus : 0;
+        return total;
     },
-    
-    findOptimalSWPCorpus(inputs) {
-        const initialWithdrawal = FinancialCalculations.calculateInitialWithdrawal(
+
+    calculateInitialWithdrawal(currentExpense, inflation, yearsToRetire) {
+        // currentExpense is monthly, so we need to calculate annual expense at retirement
+        const monthlyExpenseAtRetirement = currentExpense * Math.pow(1 + inflation / 100, yearsToRetire);
+        return monthlyExpenseAtRetirement * 12; // Return annual expense
+    },
+
+    calculateRealReturn(expectedReturn, inflation) {
+        return ((1 + expectedReturn / 100) / (1 + inflation / 100) - 1) * 100;
+    },
+
+    findOptimalBucketCorpus(inputs) {
+        // Calculate initial withdrawal amount (annual)
+        const initialWithdrawal = this.calculateInitialWithdrawal(
             inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
         );
-        const realReturn = FinancialCalculations.calculateRealReturn(
-            inputs.expectedReturn, inputs.inflation
+        
+        // Start with a more precise estimate - closer to actual needs
+        let low = initialWithdrawal * inputs.retirementYears * 0.5;
+        let high = initialWithdrawal * inputs.retirementYears * 1.5;
+        let optimalCorpus = high;
+        
+        // Ensure we have a valid range
+        if (low <= 0) low = initialWithdrawal * 5;
+        if (high <= low) high = low * 2;
+        
+        for (let attempt = 0; attempt < CALCULATOR_CONFIG.maxSimulationAttempts; attempt++) {
+            const mid = (low + high) / 2;
+            const result = this.simulateBucketStrategy(mid, inputs);
+            
+            if (!result.depleted) {
+                optimalCorpus = mid;
+                high = mid;
+            } else {
+                low = mid;
+            }
+            
+            if (high - low < CALCULATOR_CONFIG.corpusSearchPrecision) {
+                break;
+            }
+        }
+        
+        // Round up to nearest step
+        return Math.ceil(optimalCorpus / CALCULATOR_CONFIG.corpusSearchStep) * CALCULATOR_CONFIG.corpusSearchStep;
+    },
+
+    findOptimalSWPCorpus(inputs) {
+        // Calculate initial withdrawal amount (annual)
+        const initialWithdrawal = this.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
         );
         
-        if (Math.abs(realReturn) < 0.0001) {
-            return initialWithdrawal * inputs.retirementYears;
-        } else {
-            return initialWithdrawal * 
-                (1 - Math.pow(1 + inputs.inflation / 100, inputs.retirementYears) * 
-                Math.pow(1 + inputs.expectedReturn / 100, -inputs.retirementYears)) / 
-                (inputs.expectedReturn / 100 - inputs.inflation / 100);
+        // Start with a more precise estimate - closer to actual needs
+        let low = initialWithdrawal * inputs.retirementYears * 0.5;
+        let high = initialWithdrawal * inputs.retirementYears * 1.5;
+        let optimalCorpus = high;
+        
+        // Ensure we have a valid range
+        if (low <= 0) low = initialWithdrawal * 5;
+        if (high <= low) high = low * 2;
+        
+        for (let attempt = 0; attempt < CALCULATOR_CONFIG.maxSimulationAttempts; attempt++) {
+            const mid = (low + high) / 2;
+            const result = this.simulateSWPStrategy(mid, inputs);
+            
+            if (!result.depleted) {
+                optimalCorpus = mid;
+                high = mid;
+            } else {
+                low = mid;
+            }
+            
+            if (high - low < CALCULATOR_CONFIG.corpusSearchPrecision) {
+                break;
+            }
         }
-    }
-};
+        
+        // Round up to nearest step
+        return Math.ceil(optimalCorpus / CALCULATOR_CONFIG.corpusSearchStep) * CALCULATOR_CONFIG.corpusSearchStep;
+    },
 
-// Simulation Logic
-const Simulations = {
     simulateBucketStrategy(corpus, inputs) {
+        const initialWithdrawal = this.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        
         let bucket1 = corpus * inputs.allocations.bucket1 / 100;
         let bucket2 = corpus * inputs.allocations.bucket2 / 100;
         let bucket3 = corpus * inputs.allocations.bucket3 / 100;
         
-        let withdrawal = FinancialCalculations.calculateInitialWithdrawal(
-            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
-        );
+        let currentWithdrawal = initialWithdrawal;
         
         for (let year = 1; year <= inputs.retirementYears; year++) {
-            bucket1 *= (1 + inputs.returns.bucket1 / 100);
-            bucket2 *= (1 + inputs.returns.bucket2 / 100);
-            bucket3 *= (1 + inputs.returns.bucket3 / 100);
-            
-            if (bucket1 + bucket2 + bucket3 < withdrawal) {
-                return false;
+            // Withdraw from bucket 1 first
+            if (bucket1 >= currentWithdrawal) {
+                bucket1 -= currentWithdrawal;
+            } else {
+                const remaining = currentWithdrawal - bucket1;
+                bucket1 = 0;
+                
+                if (bucket2 >= remaining) {
+                    bucket2 -= remaining;
+                } else {
+                    const finalRemaining = remaining - bucket2;
+                    bucket2 = 0;
+                    
+                    if (bucket3 >= finalRemaining) {
+                        bucket3 -= finalRemaining;
+                    } else {
+                        return { depleted: true, year };
+                    }
+                }
             }
             
-            let remaining = withdrawal;
-            const from1 = Math.min(bucket1, remaining);
-            bucket1 -= from1;
-            remaining -= from1;
+            // Rebalance and grow
+            const total = bucket1 + bucket2 + bucket3;
+            bucket1 = total * inputs.allocations.bucket1 / 100 * (1 + inputs.returns.bucket1 / 100);
+            bucket2 = total * inputs.allocations.bucket2 / 100 * (1 + inputs.returns.bucket2 / 100);
+            bucket3 = total * inputs.allocations.bucket3 / 100 * (1 + inputs.returns.bucket3 / 100);
             
-            if (remaining > 0) {
-                const from2 = Math.min(bucket2, remaining);
-                bucket2 -= from2;
-                remaining -= from2;
-            }
-            
-            if (remaining > 0) {
-                const from3 = Math.min(bucket3, remaining);
-                bucket3 -= from3;
-                remaining -= from3;
-            }
-            
-            withdrawal *= (1 + inputs.inflation / 100);
+            // Increase withdrawal for inflation
+            currentWithdrawal *= (1 + inputs.inflation / 100);
         }
         
-        return true;
-    }
-};
+        return { depleted: false, year: inputs.retirementYears };
+    },
 
-// Strategy Calculations
-const Strategies = {
     calculateBucketStrategy(inputs, resultElementId, maxYears = CALCULATOR_CONFIG.maxSimulationYears) {
+        const initialWithdrawal = this.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        
         let bucket1 = inputs.corpus * inputs.allocations.bucket1 / 100;
         let bucket2 = inputs.corpus * inputs.allocations.bucket2 / 100;
         let bucket3 = inputs.corpus * inputs.allocations.bucket3 / 100;
         
-        let withdrawal = FinancialCalculations.calculateInitialWithdrawal(
-            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
-        );
-        const initialWithdrawal = withdrawal;
-        
-        let tableHTML = Templates.strategyHeader(
-            '3-Bucket Withdrawal Strategy',
-            initialWithdrawal
-        ) + `
-            <div class="summary">
-                <p>Initial Corpus Allocation: Bucket 1: ₹${formatNumber(bucket1)}, Bucket 2: ₹${formatNumber(bucket2)}, Bucket 3: ₹${formatNumber(bucket3)}</p>
-                <p>Total Initial Corpus: ₹${formatNumber(bucket1 + bucket2 + bucket3)}</p>
-            </div>
-        ` + Templates.bucketTableHeader();
-        
-        let year = 0; // Start from year 0 to show initial state
+        let currentWithdrawal = initialWithdrawal;
         let depleted = false;
+        let depletedYear = 0;
         
-        // Show initial state
-        const initialTotal = bucket1 + bucket2 + bucket3;
-        tableHTML += Templates.bucketRow(year, 0, bucket1, bucket2, bucket3, initialTotal);
-        year = 1;
+        let tableHTML = Templates.bucketTableHeader();
         
-        while (!depleted && year <= maxYears) {
-            // Apply returns first
-            bucket1 *= (1 + inputs.returns.bucket1 / 100);
-            bucket2 *= (1 + inputs.returns.bucket2 / 100);
-            bucket3 *= (1 + inputs.returns.bucket3 / 100);
+        for (let year = 1; year <= maxYears; year++) {
+            const yearStartTotal = bucket1 + bucket2 + bucket3;
             
-            const totalBeforeWithdrawal = bucket1 + bucket2 + bucket3;
-            
-            if (totalBeforeWithdrawal < withdrawal) {
-                tableHTML += Templates.depletedRow(year, withdrawal, 4);
-                depleted = true;
-                break;
+            // Withdraw from bucket 1 first
+            if (bucket1 >= currentWithdrawal) {
+                bucket1 -= currentWithdrawal;
+            } else {
+                const remaining = currentWithdrawal - bucket1;
+                bucket1 = 0;
+                
+                if (bucket2 >= remaining) {
+                    bucket2 -= remaining;
+                } else {
+                    const finalRemaining = remaining - bucket2;
+                    bucket2 = 0;
+                    
+                    if (bucket3 >= finalRemaining) {
+                        bucket3 -= finalRemaining;
+                    } else {
+                        depleted = true;
+                        depletedYear = year;
+                        tableHTML += Templates.depletedRow(year, currentWithdrawal, 5);
+                        break;
+                    }
+                }
             }
             
-            // Withdraw from buckets in order
-            let remaining = withdrawal;
-            const from1 = Math.min(bucket1, remaining);
-            bucket1 -= from1;
-            remaining -= from1;
+            const yearEndTotal = bucket1 + bucket2 + bucket3;
             
-            if (remaining > 0) {
-                const from2 = Math.min(bucket2, remaining);
-                bucket2 -= from2;
-                remaining -= from2;
-            }
-            
-            if (remaining > 0) {
-                const from3 = Math.min(bucket3, remaining);
-                bucket3 -= from3;
-                remaining -= from3;
-            }
-            
-            bucket1 = Math.max(0, bucket1);
-            bucket2 = Math.max(0, bucket2);
-            bucket3 = Math.max(0, bucket3);
-            
-            const totalAfterWithdrawal = bucket1 + bucket2 + bucket3;
-            tableHTML += Templates.bucketRow(year, withdrawal, bucket1, bucket2, bucket3, totalAfterWithdrawal);
-            
-            withdrawal *= (1 + inputs.inflation / 100);
-            year++;
-        }
-        
-        tableHTML += Templates.tableFooter();
-        tableHTML += Templates.resultMessage(depleted, year, maxYears);
-        
-        DOM.updateResult(resultElementId, tableHTML);
-    },
-    
-    calculateBucketStrategyWithHeader(inputs, resultElementId, maxYears = CALCULATOR_CONFIG.maxSimulationYears, customHeader = '') {
-        let bucket1 = inputs.corpus * inputs.allocations.bucket1 / 100;
-        let bucket2 = inputs.corpus * inputs.allocations.bucket2 / 100;
-        let bucket3 = inputs.corpus * inputs.allocations.bucket3 / 100;
-        
-        let withdrawal = FinancialCalculations.calculateInitialWithdrawal(
-            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
-        );
-        const initialWithdrawal = withdrawal;
-        
-        let tableHTML = customHeader + Templates.strategyHeader(
-            '3-Bucket Withdrawal Strategy',
-            initialWithdrawal
-        ) + `
-            <div class="summary">
-                <p>Initial Corpus Allocation: Bucket 1: ₹${formatNumber(bucket1)}, Bucket 2: ₹${formatNumber(bucket2)}, Bucket 3: ₹${formatNumber(bucket3)}</p>
-                <p>Total Initial Corpus: ₹${formatNumber(bucket1 + bucket2 + bucket3)}</p>
-            </div>
-        ` + Templates.bucketTableHeader();
-        
-        let year = 0; // Start from year 0 to show initial state
-        let depleted = false;
-        
-        // Show initial state
-        const initialTotal = bucket1 + bucket2 + bucket3;
-        tableHTML += Templates.bucketRow(year, 0, bucket1, bucket2, bucket3, initialTotal);
-        year = 1;
-        
-        while (!depleted && year <= maxYears) {
-            // Apply returns first
-            bucket1 *= (1 + inputs.returns.bucket1 / 100);
-            bucket2 *= (1 + inputs.returns.bucket2 / 100);
-            bucket3 *= (1 + inputs.returns.bucket3 / 100);
-            
-            const totalBeforeWithdrawal = bucket1 + bucket2 + bucket3;
-            
-            if (totalBeforeWithdrawal < withdrawal) {
-                tableHTML += Templates.depletedRow(year, withdrawal, 4);
-                depleted = true;
-                break;
-            }
-            
-            // Withdraw from buckets in order
-            let remaining = withdrawal;
-            const from1 = Math.min(bucket1, remaining);
-            bucket1 -= from1;
-            remaining -= from1;
-            
-            if (remaining > 0) {
-                const from2 = Math.min(bucket2, remaining);
-                bucket2 -= from2;
-                remaining -= from2;
-            }
-            
-            if (remaining > 0) {
-                const from3 = Math.min(bucket3, remaining);
-                bucket3 -= from3;
-                remaining -= from3;
-            }
-            
-            bucket1 = Math.max(0, bucket1);
-            bucket2 = Math.max(0, bucket2);
-            bucket3 = Math.max(0, bucket3);
-            
-            const totalAfterWithdrawal = bucket1 + bucket2 + bucket3;
-            tableHTML += Templates.bucketRow(year, withdrawal, bucket1, bucket2, bucket3, totalAfterWithdrawal);
-            
-            withdrawal *= (1 + inputs.inflation / 100);
-            year++;
-        }
-        
-        tableHTML += Templates.tableFooter();
-        tableHTML += Templates.resultMessage(depleted, year, maxYears);
-        
-        DOM.updateResult(resultElementId, tableHTML);
-    },
-    
-    calculateSWPStrategy(inputs, resultElementId, maxYears = CALCULATOR_CONFIG.maxSimulationYears) {
-        let currentCorpus = inputs.corpus;
-        let withdrawal = FinancialCalculations.calculateInitialWithdrawal(
-            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
-        );
-        const initialWithdrawal = withdrawal;
-        
-        let tableHTML = Templates.strategyHeader(
-            'SWP Withdrawal Strategy',
-            initialWithdrawal
-        ) + `
-            <div class="summary">
-                <p>Initial Corpus: ₹${formatNumber(currentCorpus)}</p>
-                <p>Expected Annual Return: ${inputs.expectedReturn}%</p>
-            </div>
-        ` + Templates.swpTableHeader();
-        
-        let year = 0; // Start from year 0 to show initial state
-        let depleted = false;
-        
-        // Show initial state
-        tableHTML += Templates.swpRow(year, 0, 0, currentCorpus);
-        year = 1;
-        
-        while (!depleted && year <= maxYears) {
-            currentCorpus *= (1 + inputs.expectedReturn / 100);
-            
-            if (currentCorpus < withdrawal) {
-                tableHTML += Templates.depletedRow(year, withdrawal, 2);
-                depleted = true;
-                break;
-            }
-            
-            currentCorpus -= withdrawal;
-            tableHTML += Templates.swpRow(
+            tableHTML += Templates.bucketRow(
                 year, 
-                withdrawal, 
-                currentCorpus * inputs.expectedReturn / 100, 
-                currentCorpus
+                currentWithdrawal, 
+                bucket1, 
+                bucket2, 
+                bucket3, 
+                yearEndTotal
             );
             
-            withdrawal *= (1 + inputs.inflation / 100);
-            year++;
+            // Rebalance and grow
+            bucket1 = yearEndTotal * inputs.allocations.bucket1 / 100 * (1 + inputs.returns.bucket1 / 100);
+            bucket2 = yearEndTotal * inputs.allocations.bucket2 / 100 * (1 + inputs.returns.bucket2 / 100);
+            bucket3 = yearEndTotal * inputs.allocations.bucket3 / 100 * (1 + inputs.returns.bucket3 / 100);
+            
+            // Increase withdrawal for inflation
+            currentWithdrawal *= (1 + inputs.inflation / 100);
         }
         
         tableHTML += Templates.tableFooter();
-        tableHTML += Templates.resultMessage(depleted, year, maxYears);
+        tableHTML += Templates.resultMessage(depleted, depletedYear, maxYears);
         
-        DOM.updateResult(resultElementId, tableHTML);
+        DOM.appendResult(resultElementId, tableHTML);
+    },
+
+    calculateBucketStrategyWithHeader(inputs, resultElementId, maxYears = CALCULATOR_CONFIG.maxSimulationYears, customHeader = '') {
+        const initialWithdrawal = this.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        
+        let bucket1 = inputs.corpus * inputs.allocations.bucket1 / 100;
+        let bucket2 = inputs.corpus * inputs.allocations.bucket2 / 100;
+        let bucket3 = inputs.corpus * inputs.allocations.bucket3 / 100;
+        
+        let currentWithdrawal = initialWithdrawal;
+        let depleted = false;
+        let depletedYear = 0;
+        
+        let tableHTML = customHeader + Templates.bucketTableHeader();
+        
+        for (let year = 1; year <= maxYears; year++) {
+            const yearStartTotal = bucket1 + bucket2 + bucket3;
+            
+            // Withdraw from bucket 1 first
+            if (bucket1 >= currentWithdrawal) {
+                bucket1 -= currentWithdrawal;
+            } else {
+                const remaining = currentWithdrawal - bucket1;
+                bucket1 = 0;
+                
+                if (bucket2 >= remaining) {
+                    bucket2 -= remaining;
+                } else {
+                    const finalRemaining = remaining - bucket2;
+                    bucket2 = 0;
+                    
+                    if (bucket3 >= finalRemaining) {
+                        bucket3 -= finalRemaining;
+                    } else {
+                        depleted = true;
+                        depletedYear = year;
+                        tableHTML += Templates.depletedRow(year, currentWithdrawal, 5);
+                        break;
+                    }
+                }
+            }
+            
+            const yearEndTotal = bucket1 + bucket2 + bucket3;
+            
+            tableHTML += Templates.bucketRow(
+                year, 
+                currentWithdrawal, 
+                bucket1, 
+                bucket2, 
+                bucket3, 
+                yearEndTotal
+            );
+            
+            // Rebalance and grow
+            bucket1 = yearEndTotal * inputs.allocations.bucket1 / 100 * (1 + inputs.returns.bucket1 / 100);
+            bucket2 = yearEndTotal * inputs.allocations.bucket2 / 100 * (1 + inputs.returns.bucket2 / 100);
+            bucket3 = yearEndTotal * inputs.allocations.bucket3 / 100 * (1 + inputs.returns.bucket3 / 100);
+            
+            // Increase withdrawal for inflation
+            currentWithdrawal *= (1 + inputs.inflation / 100);
+        }
+        
+        tableHTML += Templates.tableFooter();
+        tableHTML += Templates.resultMessage(depleted, depletedYear, maxYears);
+        
+        DOM.appendResult(resultElementId, tableHTML);
+    },
+
+    calculateSWPStrategy(inputs, resultElementId, maxYears = CALCULATOR_CONFIG.maxSimulationYears) {
+        const initialWithdrawal = this.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        
+        let corpus = inputs.corpus;
+        let currentWithdrawal = initialWithdrawal;
+        let depleted = false;
+        let depletedYear = 0;
+        
+        let tableHTML = Templates.swpTableHeader();
+        
+        for (let year = 1; year <= maxYears; year++) {
+            if (corpus < currentWithdrawal) {
+                depleted = true;
+                depletedYear = year;
+                tableHTML += Templates.depletedRow(year, currentWithdrawal, 3);
+                break;
+            }
+            
+            corpus -= currentWithdrawal;
+            const returns = corpus * inputs.return / 100;
+            corpus += returns;
+            
+            tableHTML += Templates.swpRow(year, currentWithdrawal, returns, corpus);
+            
+            // Increase withdrawal for inflation
+            currentWithdrawal *= (1 + inputs.inflation / 100);
+        }
+        
+        tableHTML += Templates.tableFooter();
+        tableHTML += Templates.resultMessage(depleted, depletedYear, maxYears);
+        
+        DOM.appendResult(resultElementId, tableHTML);
+    },
+
+    simulateSWPStrategy(corpus, inputs) {
+        const initialWithdrawal = this.calculateInitialWithdrawal(
+            inputs.currentExpense, inputs.inflation, inputs.yearsToRetire
+        );
+        
+        let currentCorpus = corpus;
+        let currentWithdrawal = initialWithdrawal;
+        
+        for (let year = 1; year <= inputs.retirementYears; year++) {
+            if (currentCorpus < currentWithdrawal) {
+                return { depleted: true, year };
+            }
+            
+            currentCorpus -= currentWithdrawal;
+            const returns = currentCorpus * inputs.return / 100;
+            currentCorpus += returns;
+            
+            // Increase withdrawal for inflation
+            currentWithdrawal *= (1 + inputs.inflation / 100);
+        }
+        
+        return { depleted: false, year: inputs.retirementYears };
     }
 };
 
-// HTML Templates
+// Templates
 const Templates = {
     corpusResult(lumpsumFV, sipFV, total) {
         return `
-            <h3>Projected Retirement Corpus</h3>
             <div class="result-grid">
                 <div class="result-item">
-                    <span class="result-label">Lumpsum Future Value:</span>
-                    <span class="result-value">₹${formatNumber(lumpsumFV)}</span>
+                    <div class="result-label">Lumpsum Future Value</div>
+                    <div class="result-value">₹${formatNumber(lumpsumFV)}</div>
                 </div>
                 <div class="result-item">
-                    <span class="result-label">SIP Future Value:</span>
-                    <span class="result-value">₹${formatNumber(sipFV)}</span>
+                    <div class="result-label">SIP Future Value</div>
+                    <div class="result-value">₹${formatNumber(sipFV)}</div>
                 </div>
                 <div class="result-item highlight">
-                    <span class="result-label">Total Retirement Corpus:</span>
-                    <span class="result-value">₹${formatNumber(total)}</span>
+                    <div class="result-label">Total Corpus</div>
+                    <div class="result-value">₹${formatNumber(total)}</div>
                 </div>
             </div>
         `;
     },
-    
+
+    fdResult(currentAmount, currentAmountFV, monthlyInvestment, monthlyInvestmentFV, total) {
+        return `
+            <div class="result-grid">
+                <div class="result-item">
+                    <div class="result-label">Current FD Future Value</div>
+                    <div class="result-value">₹${formatNumber(currentAmountFV)}</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-label">Monthly FD Future Value</div>
+                    <div class="result-value">₹${formatNumber(monthlyInvestmentFV)}</div>
+                </div>
+                <div class="result-item highlight">
+                    <div class="result-label">Total FD Corpus</div>
+                    <div class="result-value">₹${formatNumber(total)}</div>
+                </div>
+            </div>
+        `;
+    },
+
     suggestedCorpusResult(title, corpus, years) {
         return `
-            <h3>${title}</h3>
             <div class="result-highlight">
-                <span class="result-label">Required Corpus:</span>
-                <span class="result-value">₹${formatNumber(corpus)}</span>
+                ${title}: ₹${formatNumber(corpus)}
             </div>
-            <p>This corpus should support your withdrawals for ${years} years of retirement.</p>
+            <div class="summary">
+                <p><strong>This corpus is designed to last for ${years} years in retirement.</strong></p>
+                <p>The calculation assumes your expenses will increase with inflation and your portfolio will generate returns to sustain your withdrawals.</p>
+            </div>
         `;
     },
-    
+
     strategyHeader(title, initialWithdrawal) {
         return `
-            <h3>${title}</h3>
+            <div class="result-highlight">
+                ${title}
+            </div>
             <div class="summary">
-                <p>Initial Monthly Expense at Retirement: ₹${formatNumber(initialWithdrawal / 12)}</p>
-                <p>Initial Annual Withdrawal: ₹${formatNumber(initialWithdrawal)}</p>
+                <p><strong>Initial Annual Withdrawal:</strong> ₹${formatNumber(initialWithdrawal)}</p>
+                <p>This amount will increase annually with inflation to maintain your purchasing power.</p>
             </div>
         `;
     },
-    
+
     bucketTableHeader() {
         return `
             <div class="table-container">
@@ -1055,13 +1096,13 @@ const Templates = {
                             <th>Bucket 1 (Cash/FD)</th>
                             <th>Bucket 2 (Debt/Hybrid)</th>
                             <th>Bucket 3 (Equity)</th>
-                            <th>Total Corpus</th>
+                            <th>Total</th>
                         </tr>
                     </thead>
                     <tbody>
         `;
     },
-    
+
     swpTableHeader() {
         return `
             <div class="table-container">
@@ -1070,14 +1111,14 @@ const Templates = {
                         <tr>
                             <th>Year</th>
                             <th>Withdrawal</th>
-                            <th>Portfolio Return</th>
-                            <th>Corpus After Withdrawal</th>
+                            <th>Returns</th>
+                            <th>Corpus</th>
                         </tr>
                     </thead>
                     <tbody>
         `;
     },
-    
+
     bucketRow(year, withdrawal, bucket1, bucket2, bucket3, total) {
         return `
             <tr>
@@ -1090,7 +1131,7 @@ const Templates = {
             </tr>
         `;
     },
-    
+
     swpRow(year, withdrawal, returns, corpus) {
         return `
             <tr>
@@ -1101,170 +1142,138 @@ const Templates = {
             </tr>
         `;
     },
-    
+
     depletedRow(year, withdrawal, colspan) {
         return `
             <tr class="depleted">
                 <td>${year}</td>
-                <td>₹${formatNumber(withdrawal)}</td>
-                <td colspan="${colspan}">Corpus Depleted</td>
+                <td colspan="${colspan}">Corpus depleted - ₹${formatNumber(withdrawal)} required but not available</td>
             </tr>
         `;
     },
-    
+
     tableFooter() {
-        return `</tbody></table></div>`;
+        return `
+                    </tbody>
+                </table>
+            </div>
+        `;
     },
-    
+
     resultMessage(depleted, year, maxYears) {
         if (depleted) {
-            return `<p class="warning">Warning: Corpus depleted in year ${year}</p>`;
+            return `<div class="warning">⚠️ Corpus depleted in year ${year}. Consider increasing your corpus or adjusting your strategy.</div>`;
         } else {
-            return `<p class="success">Corpus lasted through ${maxYears} years of retirement</p>`;
+            return `<div class="success">✅ Corpus sustained for ${maxYears} years. Your withdrawal strategy is sustainable!</div>`;
         }
     },
 
     epfPpfResult(type, currentCorpus, interestRate, years, futureValue) {
-        const growth = futureValue - currentCorpus;
-        const growthPercentage = ((futureValue - currentCorpus) / currentCorpus * 100).toFixed(2);
-        
         return `
-            <div class="result-summary">
-                <h3>${type} Corpus Calculation Results</h3>
-                <div class="result-grid">
-                    <div class="result-item">
-                        <span class="label">Current ${type} Corpus:</span>
-                        <span class="value">₹${formatNumber(currentCorpus)}</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="label">Interest Rate:</span>
-                        <span class="value">${interestRate}% per annum</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="label">Years to Retirement:</span>
-                        <span class="value">${years} years</span>
-                    </div>
-                    <div class="result-item highlight">
-                        <span class="label">Total ${type} Corpus at Retirement:</span>
-                        <span class="value">₹${formatNumber(futureValue)}</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="label">Total Growth:</span>
-                        <span class="value">₹${formatNumber(growth)} (${growthPercentage}%)</span>
-                    </div>
+            <div class="result-grid">
+                <div class="result-item">
+                    <div class="result-label">Current ${type} Corpus</div>
+                    <div class="result-value">₹${formatNumber(currentCorpus)}</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-label">Interest Rate</div>
+                    <div class="result-value">${interestRate}%</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-label">Years to Retirement</div>
+                    <div class="result-value">${years}</div>
+                </div>
+                <div class="result-item highlight">
+                    <div class="result-label">Future ${type} Corpus</div>
+                    <div class="result-value">₹${formatNumber(futureValue)}</div>
                 </div>
             </div>
         `;
     },
 
     epfPpfResultWithContributions(type, currentCorpus, yearlyContribution, contributionIncrease, interestRate, years, currentCorpusFV, contributionsFV, totalFutureValue) {
-        const totalInvestment = currentCorpus + (yearlyContribution * years);
-        const totalGrowth = totalFutureValue - totalInvestment;
-        const growthPercentage = totalInvestment > 0 ? ((totalGrowth / totalInvestment) * 100).toFixed(2) : '0.00';
-        
         return `
-            <div class="result-summary">
-                <h3>${type} Corpus Calculation Results</h3>
-                <div class="result-grid">
-                    <div class="result-item">
-                        <span class="label">Current ${type} Corpus:</span>
-                        <span class="value">₹${formatNumber(currentCorpus)}</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="label">Yearly Contribution:</span>
-                        <span class="value">₹${formatNumber(yearlyContribution)}</span>
-                    </div>
-                    ${contributionIncrease > 0 ? `
-                    <div class="result-item">
-                        <span class="label">Yearly Increase in Contribution:</span>
-                        <span class="value">${contributionIncrease}% per annum</span>
-                    </div>` : ''}
-                    <div class="result-item">
-                        <span class="label">Interest Rate:</span>
-                        <span class="value">${interestRate}% per annum</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="label">Years to Retirement:</span>
-                        <span class="value">${years} years</span>
-                    </div>
-                    <div class="result-breakdown">
-                        <h4>Breakdown:</h4>
-                        <div class="result-item">
-                            <span class="label">Future Value of Current Corpus:</span>
-                            <span class="value">₹${formatNumber(currentCorpusFV)}</span>
-                        </div>
-                        <div class="result-item">
-                            <span class="label">Future Value of Contributions:</span>
-                            <span class="value">₹${formatNumber(contributionsFV)}</span>
-                        </div>
-                    </div>
-                    <div class="result-item highlight">
-                        <span class="label">Total ${type} Corpus at Retirement:</span>
-                        <span class="value">₹${formatNumber(totalFutureValue)}</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="label">Total Investment:</span>
-                        <span class="value">₹${formatNumber(totalInvestment)}</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="label">Total Growth:</span>
-                        <span class="value">₹${formatNumber(totalGrowth)} (${growthPercentage}%)</span>
-                    </div>
+            <div class="result-grid">
+                <div class="result-item">
+                    <div class="result-label">Current ${type} Corpus</div>
+                    <div class="result-value">₹${formatNumber(currentCorpus)}</div>
                 </div>
+                <div class="result-item">
+                    <div class="result-label">Current Corpus Future Value</div>
+                    <div class="result-value">₹${formatNumber(currentCorpusFV)}</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-label">Yearly Contribution</div>
+                    <div class="result-value">₹${formatNumber(yearlyContribution)}</div>
+                </div>
+                ${contributionIncrease > 0 ? `
+                <div class="result-item">
+                    <div class="result-label">Contribution Increase</div>
+                    <div class="result-value">${contributionIncrease}% annually</div>
+                </div>
+                ` : ''}
+                <div class="result-item">
+                    <div class="result-label">Contributions Future Value</div>
+                    <div class="result-value">₹${formatNumber(contributionsFV)}</div>
+                </div>
+                <div class="result-item highlight">
+                    <div class="result-label">Total ${type} Corpus</div>
+                    <div class="result-value">₹${formatNumber(totalFutureValue)}</div>
+                </div>
+            </div>
+            <div class="summary">
+                <p><strong>Breakdown:</strong></p>
+                <p>• Current corpus will grow to: ₹${formatNumber(currentCorpusFV)}</p>
+                <p>• Future contributions will grow to: ₹${formatNumber(contributionsFV)}</p>
+                <p>• Total ${type} corpus at retirement: ₹${formatNumber(totalFutureValue)}</p>
             </div>
         `;
     }
 };
 
-// Analytics Tracking Functions
+// Analytics
 const Analytics = {
-    // Track calculator usage
     trackCalculatorUsage(calculatorType, inputs = {}) {
         if (typeof gtag !== 'undefined') {
-            gtag('event', 'calculator_used', {
-                'calculator_type': calculatorType,
-                'custom_parameters': inputs
+            gtag('event', 'calculator_usage', {
+                calculator_type: calculatorType,
+                ...inputs
             });
         }
     },
 
-    // Track tab switches
     trackTabSwitch(fromTab, toTab) {
         if (typeof gtag !== 'undefined') {
             gtag('event', 'tab_switch', {
-                'from_tab': fromTab,
-                'to_tab': toTab
+                from_tab: fromTab,
+                to_tab: toTab
             });
         }
     },
 
-    // Track button clicks
     trackButtonClick(buttonType, calculatorType) {
         if (typeof gtag !== 'undefined') {
             gtag('event', 'button_click', {
-                'button_type': buttonType,
-                'calculator_type': calculatorType
+                button_type: buttonType,
+                calculator_type: calculatorType
             });
         }
     },
 
-    // Track user engagement (time spent on calculator)
     trackEngagement(calculatorType, timeSpent) {
         if (typeof gtag !== 'undefined') {
-            gtag('event', 'user_engagement', {
-                'calculator_type': calculatorType,
-                'engagement_time_msec': timeSpent
+            gtag('event', 'engagement', {
+                calculator_type: calculatorType,
+                time_spent: timeSpent
             });
         }
     },
 
-    // Track calculation results
     trackCalculationResult(calculatorType, resultValue) {
         if (typeof gtag !== 'undefined') {
-            gtag('event', 'calculation_completed', {
-                'calculator_type': calculatorType,
-                'result_value': resultValue,
-                'currency': 'INR'
+            gtag('event', 'calculation_result', {
+                calculator_type: calculatorType,
+                result_value: resultValue
             });
         }
     }

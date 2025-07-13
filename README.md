@@ -1,15 +1,16 @@
 # FIRE Calculator - Invest for Financial Independence, Retire Early
 
-A comprehensive suite of financial planning calculators designed to help you achieve Financial Independence and Retire Early (FIRE). This web application provides various investment planning tools including EPF, PPF calculators, retirement corpus planning, and advanced withdrawal strategies.
+A comprehensive suite of financial planning calculators designed to help you achieve Financial Independence and Retire Early (FIRE). This web application provides various investment planning tools including EPF, PPF, FD calculators, retirement corpus planning, and advanced withdrawal strategies.
 
 ## 🌟 Features
 
-- **Investment Corpus Calculator** - Plan your lumpsum and SIP investments
+- **Equity Calculator** - Plan your lumpsum and SIP investments for equity-based corpus
 - **EPF Retirement Calculator** - Calculate your Employee Provident Fund corpus
 - **PPF Investment Calculator** - Plan your Public Provident Fund investments
+- **FD Corpus Calculator** - Calculate your Fixed Deposit corpus with monthly investments
 - **3-Bucket Withdrawal Strategy** - Diversified retirement portfolio management
 - **SWP Retirement Strategy** - Systematic Withdrawal Plan for sustainable income
-- **Optimal Corpus Planning** - Find the minimum corpus needed for retirement
+- **Suggested Corpus Planning** - Find the minimum corpus needed for retirement
 
 ## 🚀 Live Demo
 
@@ -17,9 +18,9 @@ Visit [https://investforfire.com](https://investforfire.com) to use the calculat
 
 ## 📊 Calculator Details
 
-### 1. Investment Corpus Calculator
+### 1. Equity Calculator
 
-**Purpose**: Calculate the total corpus you'll accumulate through lumpsum investments and Systematic Investment Plans (SIPs).
+**Purpose**: Calculate the total corpus you'll accumulate through lumpsum investments and Systematic Investment Plans (SIPs) in equity instruments.
 
 **Inputs**:
 - Current lumpsum amount
@@ -116,7 +117,39 @@ For each year:
 Total = Current Corpus FV + Contributions FV
 ```
 
-### 4. 3-Bucket Withdrawal Strategy
+### 4. FD Corpus Calculator
+
+**Purpose**: Calculate the future value of your Fixed Deposit investments including current FD amount and monthly FD investments with step-up increases.
+
+**Inputs**:
+- Current FD amount
+- FD interest rate
+- Monthly FD investment
+- FD investment step-up percentage (annual)
+- Years to retirement
+
+**Formulas Used**:
+
+**Current FD Future Value**:
+```
+Current FD FV = Current FD Amount × (1 + Interest Rate)^Years
+```
+
+**Monthly FD Investments Future Value**:
+```
+Monthly Rate = (1 + Interest Rate)^(1/12) - 1
+For each year:
+  For each month:
+    FV = (FV + Monthly FD Investment) × (1 + Monthly Rate)
+  Monthly FD Investment = Monthly FD Investment × (1 + Step-up %)
+```
+
+**Total FD Corpus**:
+```
+Total = Current FD FV + Monthly FD Investments FV
+```
+
+### 5. 3-Bucket Withdrawal Strategy
 
 **Purpose**: Implement a diversified withdrawal strategy using three buckets with different risk profiles and returns.
 
@@ -132,7 +165,7 @@ Total = Current Corpus FV + Contributions FV
 
 **Initial Withdrawal Amount**:
 ```
-Initial Withdrawal = Current Monthly Expense × 12 × (1 + Inflation)^Years to Retirement
+Initial Withdrawal = Current Monthly Expense × (1 + Inflation)^Years to Retirement
 ```
 
 **Bucket Allocation**:
@@ -155,7 +188,7 @@ Bucket 3 Value = Bucket 3 Value × (1 + Bucket 3 Return %)
 3. If still insufficient, withdraw from Bucket 3 (Equity)
 4. Increase withdrawal amount by inflation rate annually
 
-### 5. SWP Retirement Strategy
+### 6. SWP Withdrawal Strategy
 
 **Purpose**: Implement a Systematic Withdrawal Plan for sustainable retirement income.
 
@@ -170,7 +203,7 @@ Bucket 3 Value = Bucket 3 Value × (1 + Bucket 3 Return %)
 
 **Initial Withdrawal Amount**:
 ```
-Initial Withdrawal = Current Monthly Expense × 12 × (1 + Inflation)^Years to Retirement
+Initial Withdrawal = Current Monthly Expense × (1 + Inflation)^Years to Retirement
 ```
 
 **Annual Portfolio Growth**:
@@ -189,7 +222,7 @@ If Portfolio Value < Withdrawal Amount:
   Portfolio is depleted
 ```
 
-### 6. Optimal 3-Bucket Corpus Planning
+### 7. Suggested 3-Bucket Corpus
 
 **Purpose**: Calculate the minimum corpus required for a sustainable 3-bucket withdrawal strategy.
 
@@ -209,18 +242,18 @@ Weighted Return = (Bucket1 Return × Bucket1 Allocation +
                    Bucket3 Return × Bucket3 Allocation) ÷ 100
 ```
 
-**Perpetuity Corpus** (conservative estimate):
+**Annual Expense at Retirement**:
 ```
-Perpetuity Corpus = Annual Expense at Retirement ÷ (Weighted Return ÷ 100)
+Annual Expense = Current Monthly Expense × 12 × (1 + Inflation)^Years to Retirement
 ```
 
 **Binary Search Algorithm**:
-- Start with perpetuity corpus as lower bound
+- Start with annual expense × retirement years as estimate
 - Use binary search to find minimum viable corpus
 - Test each corpus using 3-bucket simulation
 - Return the minimum corpus that sustains for retirement years
 
-### 7. Optimal SWP Corpus Planning
+### 8. Suggested SWP Corpus
 
 **Purpose**: Calculate the minimum corpus required for a sustainable SWP strategy.
 
@@ -235,23 +268,28 @@ Perpetuity Corpus = Annual Expense at Retirement ÷ (Weighted Return ÷ 100)
 
 **Initial Withdrawal Amount**:
 ```
-Initial Withdrawal = Current Monthly Expense × 12 × (1 + Inflation)^Years to Retirement
+Initial Withdrawal = Current Monthly Expense × (1 + Inflation)^Years to Retirement
 ```
 
-**Real Return**:
+**Annual Expense at Retirement**:
 ```
-Real Return = ((1 + Expected Return) ÷ (1 + Inflation)) - 1
+Annual Expense = Initial Withdrawal × 12
 ```
 
-**Optimal Corpus** (using present value of annuity):
-```
-If Real Return ≈ 0:
-  Optimal Corpus = Initial Withdrawal × Retirement Years
-Else:
-  Optimal Corpus = Initial Withdrawal × 
-    (1 - (1 + Inflation)^Retirement Years × (1 + Expected Return)^(-Retirement Years)) ÷ 
-    (Expected Return - Inflation)
-```
+**Binary Search Algorithm**:
+- Start with annual expense × retirement years as estimate
+- Use binary search to find minimum viable corpus
+- Test each corpus using SWP simulation
+- Return the minimum corpus that sustains for retirement years
+
+## 🎯 Smart Corpus Integration
+
+The calculator features intelligent corpus summation:
+
+- **Global Corpus Tracking**: All corpus calculators (Equity, EPF, PPF, FD) contribute to a global total
+- **Automatic Updates**: Withdrawal strategy calculators automatically use the summed corpus
+- **Smart Handling**: Only non-zero calculated values are included in the total
+- **Real-time Updates**: Corpus fields in withdrawal strategies update automatically
 
 ## 🛠️ Technical Implementation
 
@@ -261,14 +299,17 @@ invest-for-fire/
 ├── index.html          # Main HTML file with calculator interfaces
 ├── script.js           # JavaScript logic for all calculators
 ├── style.css           # CSS styling for the application
+├── logo.jpg            # Application logo
 └── CNAME               # Custom domain configuration
 ```
 
 ### Key Features
 - **Responsive Design**: Works on desktop, tablet, and mobile devices
+- **Modern UI**: BespokeBrush-style header with dropdown navigation
 - **Real-time Calculations**: Instant results without page refresh
 - **Input Validation**: Ensures valid inputs and provides helpful error messages
 - **Indian Number Formatting**: Displays amounts in Indian numbering system (lakhs, crores)
+- **Smart Corpus Integration**: Automatic summation of all corpus calculations
 
 ### Browser Compatibility
 - Chrome
@@ -278,7 +319,7 @@ invest-for-fire/
 
 ## 📈 Usage Examples
 
-### Example 1: Basic Corpus Planning
+### Example 1: Basic Equity Planning
 - Current lumpsum: ₹10,00,000
 - Monthly SIP: ₹25,000
 - SIP step-up: 10% annually
@@ -296,7 +337,16 @@ invest-for-fire/
 
 **Result**: EPF corpus of approximately ₹1.2 crores
 
-### Example 3: 3-Bucket Strategy
+### Example 3: FD Planning
+- Current FD: ₹2,00,000
+- Monthly FD investment: ₹10,000
+- FD step-up: 5% annually
+- Interest rate: 6.5%
+- Years to retirement: 15
+
+**Result**: FD corpus of approximately ₹50 lakhs
+
+### Example 4: 3-Bucket Strategy
 - Monthly expenses: ₹50,000
 - Inflation: 6%
 - Corpus: ₹2 crores
@@ -304,6 +354,14 @@ invest-for-fire/
 - Returns: 6%, 8%, 12% respectively
 
 **Result**: Sustainable for 30+ years with proper bucket management
+
+### Example 5: Corpus Integration
+- Equity corpus: ₹1.5 crores
+- EPF corpus: ₹80 lakhs
+- PPF corpus: ₹40 lakhs
+- FD corpus: ₹30 lakhs
+
+**Total Corpus**: ₹3 crores (automatically calculated and used in withdrawal strategies)
 
 ## ⚠️ Disclaimer
 
@@ -313,7 +371,7 @@ These calculators are for educational and planning purposes only. The results ar
 - Past performance does not guarantee future results
 - Market returns can vary significantly from historical averages
 - Inflation rates may change over time
-- Tax implications are not considered in these calculations
+- **All calculations are without considering tax implications**
 - Please consult with a qualified financial advisor for personalized investment advice
 
 ## 📄 License

@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="logo.jpg">
+    <link rel="shortcut icon" type="image/jpeg" href="logo.jpg">
+    
     <!-- Primary Meta Tags -->
     <title>FIRE Calculator | Invest for Financial Independence, Retire Early | Investment Planning & Retirement Calculator</title>
     <meta name="title" content="FIRE Calculator | Invest for Financial Independence, Retire Early | Investment Planning & Retirement Calculator">
@@ -79,36 +83,105 @@
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <div class="header-text">
-                <h1>FIRE Calculator - Invest for Financial Independence, Retire Early</h1>
-                <p class="subtitle">Invest for FIRE with our comprehensive EPF, PPF, and early retirement planning calculators</p>
+        <!-- BespokeBrush-style Header -->
+        <header class="bespoke-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <img src="logo.jpg" alt="FIRE Calculator Logo" class="logo">
+                    <div class="brand-text">
+                        <h1>FIRE Calculator</h1>
+                        <p class="tagline">Invest for Financial Independence, Retire Early</p>
+                    </div>
+                </div>
+                
+                <!-- Hamburger Menu Button for Mobile -->
+                <button class="hamburger-menu" id="hamburger-menu" aria-label="Toggle navigation menu">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                
+                <!-- Desktop Navigation -->
+                <nav class="main-nav desktop-nav">
+                    <ul class="nav-menu">
+                        <li class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle" data-dropdown="corpus-calculators">
+                                Corpus Calculator
+                                <span class="dropdown-arrow">▼</span>
+                            </a>
+                            <ul class="dropdown-menu" id="corpus-calculators-dropdown">
+                                <li><a href="#equity-calculator" data-tab="equity-calculator" class="dropdown-item">Equity Calculator</a></li>
+                                <li><a href="#epf-calculator" data-tab="epf-calculator" class="dropdown-item">EPF Calculator</a></li>
+                                <li><a href="#ppf-calculator" data-tab="ppf-calculator" class="dropdown-item">PPF Calculator</a></li>
+                                <li><a href="#fd-calculator" data-tab="fd-calculator" class="dropdown-item">FD Calculator</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle" data-dropdown="withdrawal-strategy">
+                                Withdrawal Strategy
+                                <span class="dropdown-arrow">▼</span>
+                            </a>
+                            <ul class="dropdown-menu" id="withdrawal-strategy-dropdown">
+                                <li><a href="#swp-strategy" data-tab="swp-strategy" class="dropdown-item">SWP Withdrawal Strategy</a></li>
+                                <li><a href="#bucket-strategy" data-tab="bucket-strategy" class="dropdown-item">3-Bucket Withdrawal Strategy</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle" data-dropdown="suggested-corpus">
+                                Suggested Corpus
+                                <span class="dropdown-arrow">▼</span>
+                            </a>
+                            <ul class="dropdown-menu" id="suggested-corpus-dropdown">
+                                <li><a href="#swp-suggest" data-tab="swp-suggest" class="dropdown-item">Suggested SWP Corpus</a></li>
+                                <li><a href="#bucket-suggest" data-tab="bucket-suggest" class="dropdown-item">Suggested 3-Bucket Corpus</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </nav>
+                
+                <!-- Mobile Navigation -->
+                <nav class="main-nav mobile-nav" id="mobile-nav">
+                    <ul class="mobile-nav-menu">
+                        <li class="mobile-nav-item">
+                            <a href="#" class="mobile-nav-link" data-category="corpus-calculators">
+                                Corpus Calculator
+                                <span class="mobile-arrow">▶</span>
+                            </a>
+                            <ul class="mobile-submenu" id="mobile-corpus-calculators">
+                                <li><a href="#equity-calculator" data-tab="equity-calculator" class="mobile-submenu-item">Equity Calculator</a></li>
+                                <li><a href="#epf-calculator" data-tab="epf-calculator" class="mobile-submenu-item">EPF Calculator</a></li>
+                                <li><a href="#ppf-calculator" data-tab="ppf-calculator" class="mobile-submenu-item">PPF Calculator</a></li>
+                                <li><a href="#fd-calculator" data-tab="fd-calculator" class="mobile-submenu-item">FD Calculator</a></li>
+                            </ul>
+                        </li>
+                        <li class="mobile-nav-item">
+                            <a href="#" class="mobile-nav-link" data-category="withdrawal-strategy">
+                                Withdrawal Strategy
+                                <span class="mobile-arrow">▶</span>
+                            </a>
+                            <ul class="mobile-submenu" id="mobile-withdrawal-strategy">
+                                <li><a href="#swp-strategy" data-tab="swp-strategy" class="mobile-submenu-item">SWP Withdrawal Strategy</a></li>
+                                <li><a href="#bucket-strategy" data-tab="bucket-strategy" class="mobile-submenu-item">3-Bucket Withdrawal Strategy</a></li>
+                            </ul>
+                        </li>
+                        <li class="mobile-nav-item">
+                            <a href="#" class="mobile-nav-link" data-category="suggested-corpus">
+                                Suggested Corpus
+                                <span class="mobile-arrow">▶</span>
+                            </a>
+                            <ul class="mobile-submenu" id="mobile-suggested-corpus">
+                                <li><a href="#swp-suggest" data-tab="swp-suggest" class="mobile-submenu-item">Suggested SWP Corpus</a></li>
+                                <li><a href="#bucket-suggest" data-tab="bucket-suggest" class="mobile-submenu-item">Suggested 3-Bucket Corpus</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </nav>
             </div>
         </header>
         
-        <nav class="main-nav" role="navigation" aria-label="Calculator selection menu">
-            <div class="nav-header">
-                <h3>Financial Planning Calculators</h3>
-                <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu">
-                    <span class="toggle-icon">▼</span>
-                </button>
-            </div>
-            <div class="nav-content" id="nav-content">
-                <ul class="menu-list" role="menubar">
-                    <li role="none"><a href="#corpus-calculator" data-tab="corpus-calculator" class="menu-item active" role="menuitem" aria-current="page">Investment Corpus Calculator</a></li>
-                    <li role="none"><a href="#epf-calculator" data-tab="epf-calculator" class="menu-item" role="menuitem">EPF Retirement Calculator</a></li>
-                    <li role="none"><a href="#ppf-calculator" data-tab="ppf-calculator" class="menu-item" role="menuitem">PPF Investment Calculator</a></li>
-                    <li role="none"><a href="#bucket-strategy" data-tab="bucket-strategy" class="menu-item" role="menuitem">3-Bucket Withdrawal Strategy</a></li>
-                    <li role="none"><a href="#swp-strategy" data-tab="swp-strategy" class="menu-item" role="menuitem">SWP Retirement Strategy</a></li>
-                    <li role="none"><a href="#bucket-suggest" data-tab="bucket-suggest" class="menu-item" role="menuitem">Optimal 3-Bucket Planning</a></li>
-                    <li role="none"><a href="#swp-suggest" data-tab="swp-suggest" class="menu-item" role="menuitem">Optimal SWP Planning</a></li>
-                </ul>
-            </div>
-        </nav>
-        
-        <!-- Corpus Calculator Tab -->
-        <div id="corpus-calculator" class="tab-content active">
-            <h2>Corpus Calculator</h2>
+        <!-- Equity Calculator Tab (Renamed from Corpus Calculator) -->
+        <div id="equity-calculator" class="tab-content active">
+            <h2>Equity Calculator</h2>
             <div class="input-group">
                 <label>Lumpsum Investments:</label>
                 <input type="number" id="lumpsum" placeholder="Current lumpsum amount">
@@ -135,6 +208,33 @@
             </div>
             <button id="calculate-corpus">Calculate Corpus</button>
             <div id="corpus-result" class="result"></div>
+        </div>
+        
+        <!-- FD Calculator Tab -->
+        <div id="fd-calculator" class="tab-content">
+            <h2>FD Corpus Calculator</h2>
+            <div class="input-group">
+                <label>Current FD Amount:</label>
+                <input type="number" id="fd-current-amount" placeholder="Current FD amount">
+            </div>
+            <div class="input-group">
+                <label>FD Interest Rate (%):</label>
+                <input type="number" id="fd-interest-rate" step="0.1" placeholder="FD interest rate">
+            </div>
+            <div class="input-group">
+                <label>Monthly FD Investment:</label>
+                <input type="number" id="fd-monthly-investment" placeholder="Monthly FD investment">
+            </div>
+            <div class="input-group">
+                <label>FD Investment Step-up (% annually):</label>
+                <input type="number" id="fd-investment-stepup" step="0.1" placeholder="Annual step-up percentage">
+            </div>
+            <div class="input-group">
+                <label>Years to Retirement:</label>
+                <input type="number" id="fd-years" placeholder="Years until retirement">
+            </div>
+            <button id="calculate-fd" class="calculate-btn">Calculate FD Corpus</button>
+            <div id="fd-result" class="result"></div>
         </div>
         
         <!-- 3-Bucket Strategy Tab -->
@@ -349,7 +449,7 @@
         
         <footer class="footer">
             <div class="footer-content">
-                <h2>About Our Financial Freedom Calculators</h2>
+                <h2>About Our FIRE Calculators</h2>
                 <p>Our comprehensive suite of investment planning tools helps you calculate your path to financial independence. Whether you're planning for retirement through EPF and PPF investments, or exploring advanced strategies like SWP and 3-bucket approaches, our calculators provide accurate projections for your financial future.</p>
                 
                 <div class="calculator-features">
@@ -357,14 +457,15 @@
                     <ul>
                         <li><strong>EPF Calculator:</strong> Calculate your Employee Provident Fund corpus with yearly contributions and step-up increases</li>
                         <li><strong>PPF Calculator:</strong> Plan your Public Provident Fund investments for tax-free retirement income</li>
-                        <li><strong>Retirement Corpus Calculator:</strong> Determine how much you need for financial independence</li>
+                        <li><strong>FD Calculator:</strong> Calculate your Fixed Deposit corpus with monthly investments and step-up increases</li>
+                        <li><strong>Equity Calculator:</strong> Determine how much you need for financial independence through equity investments</li>
                         <li><strong>SWP Strategy:</strong> Systematic Withdrawal Plan for sustainable retirement income</li>
                         <li><strong>3-Bucket Strategy:</strong> Diversified approach to retirement portfolio management</li>
                     </ul>
                 </div>
                 
                 <div class="disclaimer">
-                    <p><small><strong>Disclaimer:</strong> These calculators are for educational purposes only. Results are estimates based on the inputs provided. Please consult with a qualified financial advisor for personalized investment advice. Past performance does not guarantee future results.</small></p>
+                    <p><small><strong>Disclaimer:</strong> These calculators are for educational purposes only. Results are estimates based on the inputs provided. All calculations are without considering tax implications. Please consult with a qualified financial advisor for personalized investment advice. Past performance does not guarantee future results.</small></p>
                 </div>
             </div>
         </footer>
